@@ -268,8 +268,8 @@ export function CircuitWorkspace() {
     { x1: endX, y1: WIRE_Y, x2: endX, y2: returnY },
     // Bottom wire: right to left
     { x1: endX, y1: returnY, x2: GEN_X, y2: returnY },
-    // Generator - terminal down to bottom wire
-    { x1: GEN_X, y1: genY + 30, x2: GEN_X, y2: returnY },
+    // Generator - terminal: current flows from bottom wire UP into generator
+    { x1: GEN_X, y1: returnY, x2: GEN_X, y2: genY + 30 },
   ];
 
   const allWires = [...loopWires, ...layout.wires];
