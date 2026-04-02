@@ -2,7 +2,7 @@ import { useCircuitStore } from '../../store/circuitStore';
 import { Generator } from '../elements/Generator';
 import type { CircuitNode, ComponentNode } from '../../engine/types';
 import { Lamp } from '../elements/Lamp';
-import { Ammeter } from '../elements/Ammeter';
+import { Amperemeter } from '../elements/Amperemeter';
 import { Voltmeter } from '../elements/Voltmeter';
 import { Switch } from '../elements/Switch';
 import { CurrentDots } from './CurrentDots';
@@ -303,7 +303,7 @@ export function CircuitWorkspace() {
               );
             case 'ammeter':
               return (
-                <Ammeter
+                <Amperemeter
                   key={item.id}
                   x={item.x} y={item.y}
                   values={vals}

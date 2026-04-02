@@ -41,7 +41,7 @@ export function InfoPanel() {
 
   const typeLabels: Record<string, string> = {
     lamp: 'Lamp',
-    ammeter: 'Ammeter',
+    ammeter: 'Amperemeter',
     voltmeter: 'Voltmeter',
     switch: 'Switch',
   };

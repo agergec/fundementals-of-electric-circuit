@@ -174,7 +174,7 @@ interface CircuitStore {
   setVoltage: (v: number) => void;
   toggleSwitch: (id: string) => void;
   addComponent: (type: ComponentType, afterId?: string) => void;
-  addAmmeterNear: (targetId: string) => void;
+  addAmperemeterNear: (targetId: string) => void;
   addVoltmeterAcross: (targetId: string) => void;
   removeComponent: (id: string) => void;
   setLampResistance: (id: string, multiplier: number) => void;
@@ -278,7 +278,7 @@ export const useCircuitStore = create<CircuitStore>((set) => {
       });
     },
 
-    addAmmeterNear: (targetId) => {
+    addAmperemeterNear: (targetId) => {
       set((state) => {
         const circuit = cloneNode(state.circuit) as SeriesNode;
         const found = findNode(circuit, targetId);

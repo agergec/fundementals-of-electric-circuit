@@ -1,7 +1,7 @@
 import type { CalculatedValues } from '../../engine/types';
 import { formatCurrent } from '../../utils/formatters';
 
-interface AmmeterProps {
+interface AmperemeterProps {
   x: number;
   y: number;
   values?: CalculatedValues;
@@ -9,7 +9,7 @@ interface AmmeterProps {
   onClick: (e: React.MouseEvent) => void;
 }
 
-export function Ammeter({ x, y, values, isSelected, onClick }: AmmeterProps) {
+export function Amperemeter({ x, y, values, isSelected, onClick }: AmperemeterProps) {
   return (
     <g onClick={onClick} style={{ cursor: 'pointer' }}>
       <circle

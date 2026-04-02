@@ -5,7 +5,7 @@ import { MAX_VOLTAGE, MIN_VOLTAGE } from '../../utils/constants';
 export function Toolbar() {
   const {
     addComponent,
-    addAmmeterNear,
+    addAmperemeterNear,
     addVoltmeterAcross,
     addParallelBranch,
     selectedComponentId,
@@ -73,7 +73,7 @@ export function Toolbar() {
           <button
             onClick={() => {
               if (hasSelection) {
-                addAmmeterNear(selectedComponentId);
+                addAmperemeterNear(selectedComponentId);
               } else {
                 addComponent('ammeter');
               }
@@ -83,7 +83,7 @@ export function Toolbar() {
           >
             <Gauge size={16} />
             <div className="text-left">
-              <div>Add Ammeter</div>
+              <div>Add Amperemeter</div>
               <div className="text-[9px] text-[#6b6580]">
                 {hasSelection ? 'In series with selected' : 'At end of circuit'}
               </div>
