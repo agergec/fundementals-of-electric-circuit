@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
 import { Generator } from '../elements/Generator';
@@ -361,8 +361,88 @@ export function CircuitWorkspace() {
     }
   }, [totalPx, setWireTotalLengthPx]);
 
+  // ── Pan / Zoom ──────────────────────────────────────────────────────────
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [view, setView] = useState({ x: 40, y: 40, scale: 1 });
+  const dragState = useRef<{ startX: number; startY: number; panX: number; panY: number; moved: boolean } | null>(null);
+
+  // Auto-fit whenever the circuit layout dimensions change significantly
+  const svgWidthRef = useRef(svgWidth);
+  const svgHeightRef = useRef(svgHeight);
+  svgWidthRef.current = svgWidth;
+  svgHeightRef.current = svgHeight;
+
+  const fitToView = useCallback(() => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const cw = rect.width || 700;
+    const ch = rect.height || 500;
+    const pad = 60;
+    const scaleX = (cw - pad * 2) / svgWidthRef.current;
+    const scaleY = (ch - pad * 2) / svgHeightRef.current;
+    const newScale = Math.min(scaleX, scaleY, 1.4);
+    setView({
+      x: (cw - svgWidthRef.current * newScale) / 2,
+      y: (ch - svgHeightRef.current * newScale) / 2,
+      scale: newScale,
+    });
+  }, []);
+
+  // Fit on first render and when circuit resets
+  const circuitId = circuit.id;
+  const prevCircuitId = useRef('');
+  useEffect(() => {
+    if (circuitId !== prevCircuitId.current) {
+      prevCircuitId.current = circuitId;
+      requestAnimationFrame(fitToView);
+    }
+  }, [circuitId, fitToView]);
+
+  // Wheel zoom (non-passive so we can preventDefault)
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (e.ctrlKey) {
+        // Pinch-to-zoom (trackpad pinch) or Ctrl+scroll (mouse wheel)
+        const rect = el.getBoundingClientRect();
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+        const factor = e.deltaY < 0 ? 1.08 : 0.92;
+        setView(v => {
+          const newScale = Math.max(0.15, Math.min(5, v.scale * factor));
+          const ratio = newScale / v.scale;
+          return { x: cx - (cx - v.x) * ratio, y: cy - (cy - v.y) * ratio, scale: newScale };
+        });
+      } else {
+        // Two-finger scroll → pan
+        setView(v => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY }));
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  const onMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.button !== 0) return;
+    dragState.current = { startX: e.clientX, startY: e.clientY, panX: view.x, panY: view.y, moved: false };
+  };
+  const onMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const ds = dragState.current; // capture ref value synchronously
+    if (!ds) return;
+    const dx = e.clientX - ds.startX;
+    const dy = e.clientY - ds.startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) ds.moved = true;
+    if (ds.moved) {
+      setView(v => ({ ...v, x: ds.panX + dx, y: ds.panY + dy }));
+    }
+  };
+  const onMouseUp = () => { dragState.current = null; };
+  const onSvgClick = () => { if (!dragState.current?.moved) selectComponent(null); };
+
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" onClick={() => selectComponent(null)}>
+    <div className="flex-1 flex flex-col overflow-hidden">
       {/* Issue banners — shown above the circuit */}
       {issues.length > 0 && (
         <div className="flex flex-col gap-1 px-4 pt-3 shrink-0">
@@ -386,152 +466,148 @@ export function CircuitWorkspace() {
           })}
         </div>
       )}
-      <div className="flex-1 overflow-auto p-4">
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        className="mx-auto"
-        style={{ maxHeight: '80vh', minHeight: '400px' }}
-      >
-        <defs>
-          <filter id="lampGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
-          </filter>
-          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(139,131,168,0.08)" strokeWidth="0.5" />
-          </pattern>
-        </defs>
 
-        <rect width="100%" height="100%" fill="url(#grid)" />
+      {/* Canvas */}
+      <div className="flex-1 relative overflow-hidden">
+        <svg
+          ref={svgRef}
+          width="100%" height="100%"
+          style={{ cursor: dragState.current?.moved ? 'grabbing' : 'grab', display: 'block' }}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
+          onClick={onSvgClick}
+        >
+          <defs>
+            <filter id="lampGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
+            </filter>
+            {/* Fixed grid — stays in screen space, independent of pan/zoom */}
+            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(139,131,168,0.08)" strokeWidth="0.5" />
+            </pattern>
+          </defs>
 
-        {/* Wires */}
-        {allWires.map((w, i) => (
-          <line
-            key={`w-${i}`}
-            x1={w.x1} y1={w.y1} x2={w.x2} y2={w.y2}
-            stroke={wireColor(w)}
-            strokeWidth={wireStrokeWidth}
-            strokeLinecap="round"
-          />
-        ))}
+          {/* Background — not transformed */}
+          <rect width="100%" height="100%" fill="url(#grid)" />
 
-        {/* Current dots */}
-        {isFlowing && (
-          <CurrentDots wires={allWires} current={totalCurrent} />
-        )}
+          {/* All circuit content inside the pan/zoom transform */}
+          <g transform={`translate(${view.x}, ${view.y}) scale(${view.scale})`}>
+            {/* Wires */}
+            {allWires.map((w, i) => (
+              <line
+                key={`w-${i}`}
+                x1={w.x1} y1={w.y1} x2={w.x2} y2={w.y2}
+                stroke={wireColor(w)}
+                strokeWidth={wireStrokeWidth}
+                strokeLinecap="round"
+              />
+            ))}
 
-        {/* Generator */}
-        <Generator x={GEN_X} y={genY} voltage={voltage} />
+            {/* Current dots */}
+            {isFlowing && (
+              <CurrentDots wires={allWires} current={totalCurrent} />
+            )}
 
-        {/* Components */}
-        {layout.items.map((item) => {
-          const comp = item.node;
-          const vals = calculatedValues[item.id];
-          const isSelected = selectedComponentId === item.id;
-          const hasError = errorIds.has(item.id);
+            {/* Generator */}
+            <Generator x={GEN_X} y={genY} voltage={voltage} />
 
-          const handleClick = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            selectComponent(item.id);
-          };
+            {/* Components */}
+            {layout.items.map((item) => {
+              const comp = item.node;
+              const vals = calculatedValues[item.id];
+              const isSelected = selectedComponentId === item.id;
+              const hasError = errorIds.has(item.id);
 
-          return (
-            <g key={item.id}>
-              {/* Pulsing error ring for structural mistakes */}
-              {hasError && (
-                <circle
-                  cx={item.x} cy={item.y} r={24}
-                  fill="none"
-                  stroke="#ef4444"
-                  strokeWidth={2.5}
-                  strokeDasharray="6 3"
-                  opacity={0.9}
-                >
-                  <animate attributeName="stroke-dashoffset" from="0" to="18" dur="0.8s" repeatCount="indefinite" />
-                </circle>
-              )}
-              {((): React.ReactNode => { switch (comp.componentType) {
-            case 'lamp':
+              const handleClick = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                selectComponent(item.id);
+              };
+
               return (
-                <Lamp
-                  key={item.id}
-                  x={item.x} y={item.y}
-                  values={vals}
-                  multiplier={comp.resistanceMultiplier}
-                  isSelected={isSelected}
-                  onClick={handleClick}
-                  isFlowing={isFlowing}
-                />
+                <g key={item.id}>
+                  {hasError && (
+                    <circle cx={item.x} cy={item.y} r={24}
+                      fill="none" stroke="#ef4444" strokeWidth={2.5}
+                      strokeDasharray="6 3" opacity={0.9}
+                    >
+                      <animate attributeName="stroke-dashoffset" from="0" to="18" dur="0.8s" repeatCount="indefinite" />
+                    </circle>
+                  )}
+                  {((): React.ReactNode => { switch (comp.componentType) {
+                    case 'lamp':
+                      return <Lamp key={item.id} x={item.x} y={item.y} values={vals}
+                        multiplier={comp.resistanceMultiplier} isSelected={isSelected}
+                        onClick={handleClick} isFlowing={isFlowing} />;
+                    case 'ammeter':
+                      return <Amperemeter key={item.id} x={item.x} y={item.y} values={vals}
+                        isSelected={isSelected} onClick={handleClick} />;
+                    case 'voltmeter':
+                      return <Voltmeter key={item.id} x={item.x} y={item.y} values={vals}
+                        isSelected={isSelected} onClick={handleClick} />;
+                    case 'switch':
+                      return <Switch key={item.id} x={item.x} y={item.y} closed={!!comp.closed}
+                        isSelected={isSelected} onClick={handleClick}
+                        onDoubleClick={(e: React.MouseEvent) => { e.stopPropagation(); toggleSwitch(item.id); }} />;
+                    default: return null;
+                  } })()}
+                </g>
               );
-            case 'ammeter':
-              return (
-                <Amperemeter
-                  key={item.id}
-                  x={item.x} y={item.y}
-                  values={vals}
-                  isSelected={isSelected}
-                  onClick={handleClick}
-                />
-              );
-            case 'voltmeter':
-              return (
-                <Voltmeter
-                  key={item.id}
-                  x={item.x} y={item.y}
-                  values={vals}
-                  isSelected={isSelected}
-                  onClick={handleClick}
-                />
-              );
-            case 'switch':
-              return (
-                <Switch
-                  key={item.id}
-                  x={item.x} y={item.y}
-                  closed={!!comp.closed}
-                  isSelected={isSelected}
-                  onClick={handleClick}
-                  onDoubleClick={(e: React.MouseEvent) => { e.stopPropagation(); toggleSwitch(item.id); }}
-                />
-              );
-            default:
-              return null;
-          } })()}
-            </g>
-          );
-        })}
+            })}
 
-        {/* Wire resistance visual component on bottom wire */}
-        {wireEnabled && wireResistance > 0 && (() => {
-          const wx = (GEN_X + endX) / 2;
-          const wy = returnY;
-          const hw = 28; const hh = 12;
-          // Zigzag path
-          const zx = wx - hw; const peaks = 6;
-          const step = (hw * 2) / peaks;
-          let d = `M ${zx} ${wy}`;
-          for (let i = 0; i <= peaks; i++) {
-            d += ` L ${zx + i * step} ${wy + (i % 2 === 0 ? -hh : hh)}`;
-          }
-          d += ` L ${wx + hw} ${wy}`;
-          return (
-            <g>
-              {/* Cover the wire underneath */}
-              <line x1={wx - hw - 6} y1={wy} x2={wx + hw + 6} y2={wy} stroke="#1e1b2e" strokeWidth={8} />
-              {/* Zigzag resistor */}
-              <path d={d} fill="none" stroke="#a78bfa" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              {/* Label above */}
-              <text x={wx} y={wy - hh - 6} textAnchor="middle" fill="#a78bfa" fontSize={9} fontWeight="bold">
-                {t('circuit.wireResistance')} = {wireResistance.toFixed(3)} Ω
-              </text>
-              <text x={wx} y={wy + hh + 14} textAnchor="middle" fill="#7c3aed" fontSize={8}>
-                {(totalPx * PIXEL_TO_METERS).toFixed(1)} m
-              </text>
-            </g>
-          );
-        })()}
-      </svg>
+            {/* Wire resistance zigzag */}
+            {wireEnabled && wireResistance > 0 && (() => {
+              const wx = (GEN_X + endX) / 2;
+              const wy = returnY;
+              const hw = 28; const hh = 12;
+              const zx = wx - hw; const peaks = 6;
+              const step = (hw * 2) / peaks;
+              let d = `M ${zx} ${wy}`;
+              for (let i = 0; i <= peaks; i++) {
+                d += ` L ${zx + i * step} ${wy + (i % 2 === 0 ? -hh : hh)}`;
+              }
+              d += ` L ${wx + hw} ${wy}`;
+              return (
+                <g>
+                  <line x1={wx - hw - 6} y1={wy} x2={wx + hw + 6} y2={wy} stroke="#1e1b2e" strokeWidth={8} />
+                  <path d={d} fill="none" stroke="#a78bfa" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                  <text x={wx} y={wy - hh - 6} textAnchor="middle" fill="#a78bfa" fontSize={9} fontWeight="bold">
+                    {t('circuit.wireResistance')} = {wireResistance.toFixed(3)} Ω
+                  </text>
+                  <text x={wx} y={wy + hh + 14} textAnchor="middle" fill="#7c3aed" fontSize={8}>
+                    {(totalPx * PIXEL_TO_METERS).toFixed(1)} m
+                  </text>
+                </g>
+              );
+            })()}
+          </g>
+        </svg>
+
+        {/* Zoom controls overlay */}
+        <div className="absolute bottom-3 right-3 flex flex-col gap-1">
+          <button onClick={() => setView(v => ({ ...v, scale: Math.min(5, v.scale * 1.2) }))}
+            className="w-8 h-8 rounded-lg bg-[#2d2a3e] border border-[#4a4560] text-[#8b83a8]
+                       hover:text-white hover:border-[#6b6580] transition-colors text-lg font-bold flex items-center justify-center">
+            +
+          </button>
+          <button onClick={() => setView(v => ({ ...v, scale: Math.max(0.15, v.scale * 0.83) }))}
+            className="w-8 h-8 rounded-lg bg-[#2d2a3e] border border-[#4a4560] text-[#8b83a8]
+                       hover:text-white hover:border-[#6b6580] transition-colors text-lg font-bold flex items-center justify-center">
+            −
+          </button>
+          <button onClick={fitToView}
+            className="w-8 h-8 rounded-lg bg-[#2d2a3e] border border-[#4a4560] text-[#8b83a8]
+                       hover:text-white hover:border-[#6b6580] transition-colors text-xs font-bold flex items-center justify-center"
+            title="Fit to view">
+            ⊡
+          </button>
+        </div>
+
+        {/* Scale indicator */}
+        <div className="absolute bottom-3 left-3 text-[10px] text-[#4a4560] select-none">
+          {Math.round(view.scale * 100)}%
+        </div>
       </div>
 
       {/* Circuit Totals — bottom bar */}

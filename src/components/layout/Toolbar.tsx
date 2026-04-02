@@ -1,4 +1,4 @@
-import { Lightbulb, ToggleLeft, GitBranch, RotateCcw, Zap } from 'lucide-react';
+import { Lightbulb, ToggleLeft, RotateCcw, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
 import { MAX_VOLTAGE, MIN_VOLTAGE, PIXEL_TO_METERS, WIRE_MATERIALS } from '../../utils/constants';
@@ -116,23 +116,23 @@ export function Toolbar() {
           </p>
         ) : (
           <div className="flex flex-col gap-1.5">
-            {/* Split button: Lamp branch | Ammeter branch */}
+            {/* Parallel branch chips — icon shows what goes in the new branch */}
             <div className="flex gap-1.5">
               <ParallelBranchChip
                 color="purple"
-                label={t('toolbar.lamp')}
-                icon={<Lightbulb size={12} />}
+                label="∥ Lampe"
+                icon={<Lightbulb size={14} />}
                 onClick={() => addParallelBranch(selectedComponentId)}
               />
               <ParallelBranchChip
                 color="red"
-                label={t('toolbar.addAmperemeter').replace(/^Ajouter un |^Add /, '')}
-                icon={<span className="font-black text-[11px] leading-none">A</span>}
+                label="∥ Ampère"
+                icon={<span className="font-black text-sm leading-none">A</span>}
                 onClick={() => addAmmeterParallelBranch(selectedComponentId)}
               />
             </div>
             <p className="text-[10px] text-[#4a4560] text-center">
-              + {t('toolbar.addParallelBranch').replace(/ \(.*\)$/, '')}
+              ∥ = nouvelle branche parallèle
             </p>
           </div>
         )}
@@ -284,11 +284,8 @@ function ParallelBranchChip({
       className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border
                   transition-all active:scale-95 ${c.bg} ${c.text}`}
     >
-      <div className="flex items-center gap-1">
-        <GitBranch size={12} className="opacity-70" />
-        <span>{icon}</span>
-      </div>
-      <span className={`text-[9px] font-semibold leading-tight text-center ${c.text} opacity-90`}>{label}</span>
+      <span className="text-base leading-none">{icon}</span>
+      <span className={`text-[10px] font-bold leading-tight text-center ${c.text}`}>{label}</span>
     </button>
   );
 }
