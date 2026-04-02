@@ -46,7 +46,7 @@ const GEN_X = 60;
 const COMP_START_X = 160;
 const WIRE_Y = 120; // top wire where components sit
 
-type Wire = { x1: number; y1: number; x2: number; y2: number };
+type Wire = { x1: number; y1: number; x2: number; y2: number; current?: number };
 
 interface LayoutItem {
   id: string;
@@ -68,14 +68,20 @@ interface LayoutResult {
   exitY: number;
 }
 
-function layoutNode(node: CircuitNode, x: number, y: number): LayoutResult {
+function layoutNode(
+  node: CircuitNode,
+  x: number,
+  y: number,
+  calculatedValues: Record<string, import('../../engine/types').CalculatedValues>,
+  nodeCurrent = 0,
+): LayoutResult {
   if (node.kind === 'component') {
     return {
       items: [{ id: node.id, x, y, node }],
       wires: [],
       width: COMP_WIDTH,
       heightAbove: 30,
-      heightBelow: 50, // extra for labels
+      heightBelow: 50,
       entryX: x - 24,
       entryY: y,
       exitX: x + 24,
@@ -90,9 +96,12 @@ function layoutNode(node: CircuitNode, x: number, y: number): LayoutResult {
     let maxAbove = 30;
     let maxBelow = 50;
 
+    // Series current = current of this node (same through all children)
+    const seriesCurrent = calculatedValues[node.id]?.current ?? nodeCurrent;
+
     const childLayouts: LayoutResult[] = [];
     for (const child of node.children) {
-      const cl = layoutNode(child, currentX, y);
+      const cl = layoutNode(child, currentX, y, calculatedValues, seriesCurrent);
       childLayouts.push(cl);
       allItems.push(...cl.items);
       allWires.push(...cl.wires);
@@ -101,16 +110,11 @@ function layoutNode(node: CircuitNode, x: number, y: number): LayoutResult {
       maxBelow = Math.max(maxBelow, cl.heightBelow);
     }
 
-    // Connect consecutive children with wires
+    // Connect consecutive children — carry series current
     for (let i = 0; i < childLayouts.length - 1; i++) {
       const from = childLayouts[i];
       const to = childLayouts[i + 1];
-      allWires.push({
-        x1: from.exitX,
-        y1: from.exitY,
-        x2: to.entryX,
-        y2: to.entryY,
-      });
+      allWires.push({ x1: from.exitX, y1: from.exitY, x2: to.entryX, y2: to.entryY, current: seriesCurrent });
     }
 
     const totalWidth = currentX - x;
@@ -131,14 +135,11 @@ function layoutNode(node: CircuitNode, x: number, y: number): LayoutResult {
   }
 
   if (node.kind === 'parallel') {
-    // First pass: measure each branch at origin
     const branchMeasures = node.branches.map((branch) =>
-      layoutNode(branch, 0, 0),
+      layoutNode(branch, 0, 0, calculatedValues, 0),
     );
     const maxWidth = Math.max(...branchMeasures.map((b) => b.width));
 
-    // Compute Y positions by stacking branches with proper spacing
-    // Each branch needs space: its heightAbove (from center up) + previous branch's heightBelow (from center down)
     const branchYPositions: number[] = [];
     let currentBranchY = 0;
     for (let i = 0; i < branchMeasures.length; i++) {
@@ -147,12 +148,11 @@ function layoutNode(node: CircuitNode, x: number, y: number): LayoutResult {
       } else {
         const prevBelow = branchMeasures[i - 1].heightBelow;
         const currAbove = branchMeasures[i].heightAbove;
-        currentBranchY += prevBelow + currAbove + 10; // 10px gap
+        currentBranchY += prevBelow + currAbove + 10;
       }
       branchYPositions.push(currentBranchY);
     }
 
-    // Center the branches around y
     const totalStackHeight = currentBranchY;
     const offsetY = y - totalStackHeight / 2;
 
@@ -165,24 +165,29 @@ function layoutNode(node: CircuitNode, x: number, y: number): LayoutResult {
     let overallAbove = 0;
     let overallBelow = 0;
 
+    // Total parallel current (for fork/merge vertical wires)
+    const parallelCurrent = calculatedValues[node.id]?.current ?? nodeCurrent;
+
     for (let i = 0; i < node.branches.length; i++) {
       const branchY = offsetY + branchYPositions[i];
       const bm = branchMeasures[i];
       const branchOffsetX = x + WIRE_PAD + (maxWidth - bm.width) / 2;
 
-      const bl = layoutNode(node.branches[i], branchOffsetX, branchY);
+      // Branch current from solver
+      const branchCurrent = calculatedValues[node.branches[i].id]?.current ?? 0;
+
+      const bl = layoutNode(node.branches[i], branchOffsetX, branchY, calculatedValues, branchCurrent);
       allItems.push(...bl.items);
       allWires.push(...bl.wires);
 
-      // Fork wires
-      allWires.push({ x1: forkX, y1: y, x2: forkX, y2: branchY });
-      allWires.push({ x1: forkX, y1: branchY, x2: bl.entryX, y2: branchY });
+      // Fork wires — vertical carries total, horizontal carries branch current
+      allWires.push({ x1: forkX, y1: y, x2: forkX, y2: branchY, current: parallelCurrent });
+      allWires.push({ x1: forkX, y1: branchY, x2: bl.entryX, y2: branchY, current: branchCurrent });
 
       // Merge wires
-      allWires.push({ x1: bl.exitX, y1: branchY, x2: mergeX, y2: branchY });
-      allWires.push({ x1: mergeX, y1: branchY, x2: mergeX, y2: y });
+      allWires.push({ x1: bl.exitX, y1: branchY, x2: mergeX, y2: branchY, current: branchCurrent });
+      allWires.push({ x1: mergeX, y1: branchY, x2: mergeX, y2: y, current: parallelCurrent });
 
-      // Track extent
       const aboveDist = y - (branchY - bm.heightAbove);
       const belowDist = (branchY + bm.heightBelow) - y;
       overallAbove = Math.max(overallAbove, aboveDist);
@@ -235,7 +240,7 @@ export function CircuitWorkspace() {
   const isFlowing = totalCurrent > 0.0001;
   const issues = getCircuitIssues(voltage, totalResistance, totalCurrent, t);
 
-  const layout = layoutNode(circuit, COMP_START_X, WIRE_Y);
+  const layout = layoutNode(circuit, COMP_START_X, WIRE_Y, calculatedValues, totalCurrent);
   const endX = layout.exitX + 40;
 
   // Compute SVG bounds from actual layout extent
@@ -258,22 +263,20 @@ export function CircuitWorkspace() {
   //     ↑                                            ↓
   //   GEN(−) ← left along returnY ← ← ← ← ← ← ← ←
   const loopWires: Wire[] = [
-    // Generator + terminal up to top wire
-    { x1: GEN_X, y1: genY - 30, x2: GEN_X, y2: WIRE_Y },
-    // Top wire: generator to first component
-    { x1: GEN_X, y1: WIRE_Y, x2: layout.entryX, y2: layout.entryY },
-    // After last component to right corner
-    { x1: layout.exitX, y1: layout.exitY, x2: endX, y2: WIRE_Y },
-    // Right side: down
-    { x1: endX, y1: WIRE_Y, x2: endX, y2: returnY },
-    // Bottom wire: right to left
-    { x1: endX, y1: returnY, x2: GEN_X, y2: returnY },
-    // Generator - terminal: current flows from bottom wire UP into generator
-    { x1: GEN_X, y1: returnY, x2: GEN_X, y2: genY + 30 },
+    { x1: GEN_X, y1: genY - 30, x2: GEN_X, y2: WIRE_Y, current: totalCurrent },
+    { x1: GEN_X, y1: WIRE_Y, x2: layout.entryX, y2: layout.entryY, current: totalCurrent },
+    { x1: layout.exitX, y1: layout.exitY, x2: endX, y2: WIRE_Y, current: totalCurrent },
+    { x1: endX, y1: WIRE_Y, x2: endX, y2: returnY, current: totalCurrent },
+    { x1: endX, y1: returnY, x2: GEN_X, y2: returnY, current: totalCurrent },
+    { x1: GEN_X, y1: returnY, x2: GEN_X, y2: genY + 30, current: totalCurrent },
   ];
 
   const allWires = [...loopWires, ...layout.wires];
-  const wireColor = isFlowing ? '#fbbf24' : '#6b7280';
+  // Per-wire color: amber when current flows, gray when open/no current
+  function wireColor(w: Wire): string {
+    const c = w.current ?? totalCurrent;
+    return c > 0.0001 ? '#fbbf24' : '#6b7280';
+  }
   const wireStrokeWidth = wireEnabled ? 1 + ((wireDiameterMm - 0.1) / 9.9) * 9 : 2.5;
 
   // Sync total wire pixel length to store for wire resistance calculation
@@ -337,7 +340,7 @@ export function CircuitWorkspace() {
           <line
             key={`w-${i}`}
             x1={w.x1} y1={w.y1} x2={w.x2} y2={w.y2}
-            stroke={wireColor}
+            stroke={wireColor(w)}
             strokeWidth={wireStrokeWidth}
             strokeLinecap="round"
           />
