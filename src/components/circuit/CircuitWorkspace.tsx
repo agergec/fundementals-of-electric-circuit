@@ -274,7 +274,7 @@ export function CircuitWorkspace() {
 
   const allWires = [...loopWires, ...layout.wires];
   const wireColor = isFlowing ? '#fbbf24' : '#6b7280';
-  const wireStrokeWidth = wireEnabled ? 2 + ((wireDiameterMm - 1) / 9) * 6 : 2.5;
+  const wireStrokeWidth = wireEnabled ? 1 + ((wireDiameterMm - 0.1) / 9.9) * 9 : 2.5;
 
   // Sync total wire pixel length to store for wire resistance calculation
   const totalPx = allWires.reduce(
@@ -411,30 +411,57 @@ export function CircuitWorkspace() {
           }
         })}
 
-        {/* Total values overlay */}
-        <g>
-          <rect
-            x={10} y={svgHeight - (wireEnabled && wireResistance > 0 ? 82 : 65)}
-            width={220} height={wireEnabled && wireResistance > 0 ? 72 : 55}
-            rx={10} fill="rgba(30,27,46,0.95)"
-            stroke="#4a4560" strokeWidth={1}
-          />
-          <text x={20} y={svgHeight - (wireEnabled && wireResistance > 0 ? 59 : 42)} fill="#8b83a8" fontSize={10} fontWeight="600">
-            {t('circuit.totals')}
-          </text>
-          <text x={20} y={svgHeight - (wireEnabled && wireResistance > 0 ? 43 : 26)} fill="#22c55e" fontSize={12} fontWeight="bold">
-            R = {isFinite(totalResistance) ? `${totalResistance.toFixed(1)} Ω` : '∞ Ω'}
-          </text>
-          <text x={120} y={svgHeight - (wireEnabled && wireResistance > 0 ? 43 : 26)} fill="#ef4444" fontSize={12} fontWeight="bold">
-            I = {totalCurrent.toFixed(3)} A
-          </text>
-          {wireEnabled && wireResistance > 0 && (
-            <text x={20} y={svgHeight - 26} fill="#a78bfa" fontSize={11} fontWeight="bold">
-              {t('circuit.wireResistance')} = {wireResistance.toFixed(3)} Ω ({(totalPx * PIXEL_TO_METERS).toFixed(1)} m)
-            </text>
-          )}
-        </g>
+        {/* Wire resistance visual component on bottom wire */}
+        {wireEnabled && wireResistance > 0 && (() => {
+          const wx = (GEN_X + endX) / 2;
+          const wy = returnY;
+          const hw = 28; const hh = 12;
+          // Zigzag path
+          const zx = wx - hw; const peaks = 6;
+          const step = (hw * 2) / peaks;
+          let d = `M ${zx} ${wy}`;
+          for (let i = 0; i <= peaks; i++) {
+            d += ` L ${zx + i * step} ${wy + (i % 2 === 0 ? -hh : hh)}`;
+          }
+          d += ` L ${wx + hw} ${wy}`;
+          return (
+            <g>
+              {/* Cover the wire underneath */}
+              <line x1={wx - hw - 6} y1={wy} x2={wx + hw + 6} y2={wy} stroke="#1e1b2e" strokeWidth={8} />
+              {/* Zigzag resistor */}
+              <path d={d} fill="none" stroke="#a78bfa" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              {/* Label above */}
+              <text x={wx} y={wy - hh - 6} textAnchor="middle" fill="#a78bfa" fontSize={9} fontWeight="bold">
+                {t('circuit.wireResistance')} = {wireResistance.toFixed(3)} Ω
+              </text>
+              <text x={wx} y={wy + hh + 14} textAnchor="middle" fill="#7c3aed" fontSize={8}>
+                {(totalPx * PIXEL_TO_METERS).toFixed(1)} m
+              </text>
+            </g>
+          );
+        })()}
       </svg>
+      </div>
+
+      {/* Circuit Totals — bottom bar */}
+      <div className="shrink-0 flex items-center gap-6 px-6 py-2 bg-[#2d2a3e] border-t border-[#4a4560]">
+        <span className="text-[10px] font-semibold text-[#8b83a8] uppercase tracking-wider shrink-0">
+          {t('circuit.totals')}
+        </span>
+        <span className="text-sm font-bold text-green-400">
+          R = {isFinite(totalResistance) ? `${totalResistance.toFixed(2)} Ω` : '∞ Ω'}
+        </span>
+        <span className="text-sm font-bold text-red-400">
+          I = {totalCurrent.toFixed(3)} A
+        </span>
+        {wireEnabled && wireResistance > 0 && (
+          <span className="text-sm font-bold text-purple-400">
+            {t('circuit.wireResistance')} = {wireResistance.toFixed(3)} Ω
+            <span className="text-[10px] font-normal text-[#6b6580] ml-1">
+              ({(totalPx * PIXEL_TO_METERS).toFixed(1)} m)
+            </span>
+          </span>
+        )}
       </div>
     </div>
   );

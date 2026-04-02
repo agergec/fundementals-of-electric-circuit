@@ -15,9 +15,10 @@ export const RESISTANCE_OPTIONS = [
 export const PIXEL_TO_METERS = 0.005; // 1 SVG pixel = 5mm real world
 
 export const WIRE_MATERIALS = {
-  silver: { resistivity: 1.59e-8 },
-  copper: { resistivity: 1.68e-8 },
-  steel:  { resistivity: 1.00e-7 },
+  silver:   { resistivity: 1.59e-8 },
+  copper:   { resistivity: 1.68e-8 },
+  steel:    { resistivity: 1.00e-7 },
+  nichrome: { resistivity: 1.10e-6 }, // Nickel-chromium alloy, used in heating elements
 } as const;
 
 export type WireMaterial = keyof typeof WIRE_MATERIALS;

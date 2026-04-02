@@ -195,15 +195,15 @@ export function Toolbar() {
                 </div>
                 <input
                   type="range"
-                  min={1}
+                  min={0.1}
                   max={10}
-                  step={0.5}
+                  step={0.1}
                   value={wireDiameterMm}
                   onChange={(e) => setWireDiameterMm(parseFloat(e.target.value))}
                   className="w-full accent-purple-400 cursor-pointer"
                 />
                 <div className="flex justify-between text-[10px] text-[#6b6580] mt-0.5">
-                  <span>1 mm</span>
+                  <span>0.1 mm</span>
                   <span>10 mm</span>
                 </div>
               </div>
