@@ -37,7 +37,7 @@ export function InfoPanel() {
   const component = findComponentById(circuit, selectedComponentId);
   if (!component) return null;
 
-  const values = calculatedValues.get(selectedComponentId);
+  const values = calculatedValues[selectedComponentId];
 
   const typeLabels: Record<string, string> = {
     lamp: 'Lamp',

@@ -33,5 +33,5 @@ export interface CalculatedValues {
 export interface SolverResult {
   totalResistance: number;
   totalCurrent: number;
-  values: Map<string, CalculatedValues>;
+  values: Record<string, CalculatedValues>;
 }

@@ -7,6 +7,51 @@ import { Voltmeter } from '../elements/Voltmeter';
 import { Switch } from '../elements/Switch';
 import { CurrentDots } from './CurrentDots';
 
+interface CircuitIssue {
+  level: 'error' | 'warning' | 'info';
+  title: string;
+  detail: string;
+}
+
+function getCircuitIssues(
+  voltage: number,
+  totalResistance: number,
+  totalCurrent: number,
+): CircuitIssue[] {
+  const issues: CircuitIssue[] = [];
+
+  if (voltage === 0) {
+    issues.push({
+      level: 'info',
+      title: 'Generator is off',
+      detail: 'Move the voltage slider to power the circuit.',
+    });
+    return issues;
+  }
+
+  if (totalResistance === 0) {
+    issues.push({
+      level: 'error',
+      title: 'Short Circuit!',
+      detail:
+        'The circuit has zero resistance — infinite current would flow. ' +
+        'An amperemeter is likely connected in parallel with a component. ' +
+        'Amperemeters must always be in series.',
+    });
+  } else if (!isFinite(totalResistance) || (totalCurrent === 0 && voltage > 0)) {
+    issues.push({
+      level: 'warning',
+      title: 'Open Circuit',
+      detail:
+        'No current flows. Possible causes: all switches are open, ' +
+        'a voltmeter is placed in series (voltmeters must be in parallel), ' +
+        'or the circuit has no complete path back to the generator.',
+    });
+  }
+
+  return issues;
+}
+
 // Layout tuning
 const COMP_WIDTH = 90;       // horizontal space per component
 const WIRE_PAD = 25;         // wire padding before/after parallel fork/merge
@@ -197,6 +242,7 @@ export function CircuitWorkspace() {
   } = useCircuitStore();
 
   const isFlowing = totalCurrent > 0.0001;
+  const issues = getCircuitIssues(voltage, totalResistance, totalCurrent);
 
   const layout = layoutNode(circuit, COMP_START_X, WIRE_Y);
   const endX = layout.exitX + 40;
@@ -239,7 +285,31 @@ export function CircuitWorkspace() {
   const wireColor = isFlowing ? '#fbbf24' : '#6b7280';
 
   return (
-    <div className="flex-1 overflow-auto p-4" onClick={() => selectComponent(null)}>
+    <div className="flex-1 flex flex-col overflow-hidden" onClick={() => selectComponent(null)}>
+      {/* Issue banners — shown above the circuit */}
+      {issues.length > 0 && (
+        <div className="flex flex-col gap-1 px-4 pt-3 shrink-0">
+          {issues.map((issue, i) => {
+            const colors =
+              issue.level === 'error'
+                ? 'bg-red-950/60 border-red-500 text-red-400'
+                : issue.level === 'warning'
+                ? 'bg-amber-950/60 border-amber-500 text-amber-400'
+                : 'bg-blue-950/60 border-blue-500 text-blue-400';
+            const icon = issue.level === 'error' ? '⚡' : issue.level === 'warning' ? '⚠' : 'ℹ';
+            return (
+              <div key={i} className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-xs ${colors}`}>
+                <span className="shrink-0 font-bold">{icon}</span>
+                <div>
+                  <span className="font-bold">{issue.title}: </span>
+                  <span className="text-[#9ca3af]">{issue.detail}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="flex-1 overflow-auto p-4">
       <svg
         width="100%"
         height="100%"
@@ -280,7 +350,7 @@ export function CircuitWorkspace() {
         {/* Components */}
         {layout.items.map((item) => {
           const comp = item.node;
-          const vals = calculatedValues.get(item.id);
+          const vals = calculatedValues[item.id];
           const isSelected = selectedComponentId === item.id;
 
           const handleClick = (e: React.MouseEvent) => {
@@ -356,6 +426,7 @@ export function CircuitWorkspace() {
           </text>
         </g>
       </svg>
+      </div>
     </div>
   );
 }

@@ -166,7 +166,7 @@ function simplify(node: CircuitNode): CircuitNode | null {
 interface CircuitStore {
   voltage: number;
   circuit: SeriesNode;
-  calculatedValues: Map<string, CalculatedValues>;
+  calculatedValues: Record<string, CalculatedValues>;
   totalResistance: number;
   totalCurrent: number;
   selectedComponentId: string | null;

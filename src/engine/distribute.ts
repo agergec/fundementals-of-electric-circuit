@@ -3,18 +3,18 @@ import { calcResistance } from './resistance';
 
 /**
  * Pass 2: Top-down distribution of voltage and current through the tree.
- * Populates a Map of component ID → { voltage, current, resistance }.
+ * Populates a plain object of component ID → { voltage, current, resistance }.
  */
 export function distribute(
   node: CircuitNode,
   voltage: number,
   current: number,
-  values: Map<string, CalculatedValues>,
+  values: Record<string, CalculatedValues>,
 ): void {
   switch (node.kind) {
     case 'component': {
       const r = calcResistance(node);
-      values.set(node.id, { voltage, current, resistance: r });
+      values[node.id] = { voltage, current, resistance: r };
       break;
     }
     case 'series': {
@@ -40,11 +40,7 @@ export function distribute(
         distribute(child, childV, current, values);
       }
 
-      values.set(node.id, {
-        voltage,
-        current,
-        resistance: totalR,
-      });
+      values[node.id] = { voltage, current, resistance: totalR };
       break;
     }
     case 'parallel': {
@@ -57,11 +53,7 @@ export function distribute(
       }
 
       const totalR = calcResistance(node);
-      values.set(node.id, {
-        voltage,
-        current,
-        resistance: totalR,
-      });
+      values[node.id] = { voltage, current, resistance: totalR };
       break;
     }
   }

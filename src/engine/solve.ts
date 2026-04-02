@@ -17,7 +17,7 @@ export function solveCircuit(
       ? sourceVoltage / totalResistance
       : 0;
 
-  const values = new Map<string, import('./types').CalculatedValues>();
+  const values: Record<string, import('./types').CalculatedValues> = {};
   distribute(circuit, sourceVoltage, totalCurrent, values);
 
   return { totalResistance, totalCurrent, values };
