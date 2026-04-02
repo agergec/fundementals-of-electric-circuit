@@ -165,8 +165,9 @@ function layoutNode(
     let overallAbove = 0;
     let overallBelow = 0;
 
-    // Total parallel current (for fork/merge vertical wires)
-    const parallelCurrent = calculatedValues[node.id]?.current ?? nodeCurrent;
+    // Fork/merge vertical wires carry the total current entering the parallel group.
+    // Use nodeCurrent (passed from parent) — it's 0 when any upstream switch is open.
+    const parallelCurrent = nodeCurrent;
 
     for (let i = 0; i < node.branches.length; i++) {
       const branchY = offsetY + branchYPositions[i];
