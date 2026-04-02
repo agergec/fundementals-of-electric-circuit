@@ -21,7 +21,7 @@ export function CurrentDots({ wires, current }: CurrentDotsProps) {
   const animRef = useRef<number>(0);
   const lastTime = useRef<number>(0);
 
-  const speed = Math.min(2 + current * 15, 80);
+  const speed = Math.min(1 + current * 4, 12); // slow enough to see individual dots
 
   useEffect(() => {
     function animate(time: number) {

@@ -41,8 +41,16 @@ function scanMistakes(
   }
 
   function scanParallel(p: ParallelNode) {
-    for (const branch of p.branches) {
-      // Ammeter in parallel: a branch whose only component is an ammeter
+    for (const branch of (p.branches as CircuitNode[])) {
+      // simplify() can collapse a single-child SeriesNode into a bare ComponentNode.
+      // Guard against branch.children being undefined at runtime.
+      if (branch.kind === 'component') {
+        if (branch.componentType === 'ammeter') {
+          result.ammetersInParallel.push(branch.id);
+        }
+        continue;
+      }
+      if (branch.kind !== 'series') continue;
       const hasOnlyAmmeter =
         branch.children.length === 1 &&
         branch.children[0].kind === 'component' &&
@@ -101,7 +109,7 @@ function analyzeCircuit(
 
 // Layout tuning
 const COMP_WIDTH = 90;       // horizontal space per component
-const WIRE_PAD = 25;         // wire padding before/after parallel fork/merge
+const WIRE_PAD = 50;         // wire padding before/after parallel fork/merge
 
 const GEN_X = 60;
 const COMP_START_X = 160;

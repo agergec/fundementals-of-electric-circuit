@@ -187,6 +187,7 @@ interface CircuitStore {
   removeComponent: (id: string) => void;
   setLampResistance: (id: string, multiplier: number) => void;
   addParallelBranch: (componentId: string) => void;
+  addAmmeterParallelBranch: (componentId: string) => void;
   selectComponent: (id: string | null) => void;
   resetCircuit: () => void;
   recalculate: () => void;
@@ -288,7 +289,13 @@ export const useCircuitStore = create<CircuitStore>((set) => {
         if (afterId) {
           const found = findNode(circuit, afterId);
           if (found && found.parent.kind === 'series') {
+            // Normal case: insert in series right after the found component
             found.parent.children.splice(found.index + 1, 0, newComponent);
+          } else if (found && found.parent.kind === 'parallel') {
+            // The branch was simplified to a bare ComponentNode (no SeriesNode wrapper).
+            // Wrap the existing component + new component in a proper SeriesNode.
+            const newBranch = makeSeriesNode([found.node as CircuitNode, newComponent]);
+            (found.parent as ParallelNode).branches.splice(found.index, 1, newBranch as unknown as SeriesNode);
           } else {
             circuit.children.push(newComponent);
           }
@@ -400,6 +407,38 @@ export const useCircuitStore = create<CircuitStore>((set) => {
               branches: [
                 makeSeriesNode([targetNode]),
                 makeSeriesNode([makeLamp()]),
+              ],
+            };
+            found.parent.children[found.index] = parallelNode;
+          }
+        }
+
+        return { circuit, ...recalc({ ...state, circuit }) };
+      });
+    },
+
+    addAmmeterParallelBranch: (componentId) => {
+      set((state) => {
+        const circuit = cloneNode(state.circuit) as SeriesNode;
+        const found = findNode(circuit, componentId);
+        if (!found) return state;
+
+        const targetNode = found.node;
+        const newBranch = makeSeriesNode([makeComponent('ammeter')]);
+
+        if (targetNode.kind === 'parallel') {
+          targetNode.branches.push(newBranch);
+        } else {
+          const parentParallel = findParentParallel(circuit, componentId);
+          if (parentParallel) {
+            parentParallel.parallel.branches.push(newBranch);
+          } else if (found.parent.kind === 'series') {
+            const parallelNode: ParallelNode = {
+              kind: 'parallel',
+              id: uid(),
+              branches: [
+                makeSeriesNode([targetNode]),
+                newBranch,
               ],
             };
             found.parent.children[found.index] = parallelNode;

@@ -15,9 +15,12 @@
     "atEndOfCircuit": "At end of circuit",
     "acrossSelected": "Across selected component",
     "selectFirst": "Select a component first",
+    "voltmeterSeries": "In series (end of circuit)",
+    "voltmeterAcross": "In parallel with selected",
     "actions": "Actions",
-    "addParallelBranch": "Add Parallel Branch",
-    "parallelHint": "Select a component, then click to split into parallel branches.",
+    "addParallelBranch": "Add Parallel Branch (Lamp)",
+    "addAmmeterParallelBranch": "Add Parallel Branch (Amperemeter)",
+    "parallelHint": "Select a component to create parallel branches.",
     "resetCircuit": "Reset Circuit",
     "wireSettings": "Wire Settings",
     "enableWire": "Enable wire resistance",
@@ -55,9 +58,5 @@
     "voltmeterInSeriesDetail": "A voltmeter has very high resistance — placing it in series blocks all current. Voltmeters must be connected in PARALLEL, across the component you want to measure.",
     "ammeterInParallel": "Amperemeter in parallel!",
     "ammeterInParallelDetail": "An amperemeter has near-zero resistance — placing it in parallel creates a short circuit. Amperemeters must always be in SERIES."
-  },
-  "toolbar": {
-    "voltmeterSeries": "In series (end of circuit)",
-    "voltmeterAcross": "In parallel with selected"
   }
 }

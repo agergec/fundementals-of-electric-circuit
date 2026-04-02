@@ -15,9 +15,12 @@
     "atEndOfCircuit": "En fin de circuit",
     "acrossSelected": "En parallèle avec la sélection",
     "selectFirst": "Sélectionne un composant d'abord",
+    "voltmeterSeries": "En série (fin de circuit)",
+    "voltmeterAcross": "En parallèle avec la sélection",
     "actions": "Actions",
-    "addParallelBranch": "Ajouter une branche parallèle",
-    "parallelHint": "Sélectionne un composant, puis clique pour créer des branches parallèles.",
+    "addParallelBranch": "Branche parallèle (Lampe)",
+    "addAmmeterParallelBranch": "Branche parallèle (Ampèremètre)",
+    "parallelHint": "Sélectionne un composant pour créer des branches parallèles.",
     "resetCircuit": "Réinitialiser le circuit",
     "wireSettings": "Paramètres des fils",
     "enableWire": "Activer la résistance des fils",
@@ -55,9 +58,5 @@
     "voltmeterInSeriesDetail": "Un voltmètre a une très grande résistance — placé en série, il bloque tout le courant. Le voltmètre doit être branché EN PARALLÈLE, aux bornes du composant à mesurer.",
     "ammeterInParallel": "Ampèremètre en parallèle !",
     "ammeterInParallelDetail": "Un ampèremètre a une résistance quasi nulle — placé en parallèle, il crée un court-circuit. Les ampèremètres doivent toujours être EN SÉRIE."
-  },
-  "toolbar": {
-    "voltmeterSeries": "En série (fin de circuit)",
-    "voltmeterAcross": "En parallèle avec la sélection"
   }
 }
