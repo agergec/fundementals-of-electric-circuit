@@ -86,7 +86,7 @@ export function Toolbar() {
             icon={<span className="font-black text-sm leading-none">A</span>}
             label={t('toolbar.addAmperemeter').replace(/^Ajouter un |^Add /, '')}
             color="red"
-            badge={hasSelection ? '→ série' : undefined}
+            badge={hasSelection ? 'en série' : undefined}
             onClick={() => {
               if (hasSelection) addAmperemeterNear(selectedComponentId);
               else addComponent('ammeter');
@@ -97,7 +97,7 @@ export function Toolbar() {
             icon={<span className="font-black text-sm leading-none">V</span>}
             label={t('toolbar.addVoltmeter').replace(/^Ajouter un |^Add /, '')}
             color="blue"
-            badge={hasSelection ? '∥ para.' : '→ série'}
+            badge={hasSelection ? 'parallèle' : 'en série'}
             onClick={() => {
               if (hasSelection) addVoltmeterAcross(selectedComponentId);
               else addComponent('voltmeter');
@@ -115,25 +115,21 @@ export function Toolbar() {
             {t('toolbar.parallelHint')}
           </p>
         ) : (
-          <div className="flex flex-col gap-1.5">
-            {/* Parallel branch chips — icon shows what goes in the new branch */}
-            <div className="flex gap-1.5">
-              <ParallelBranchChip
-                color="purple"
-                label="∥ Lampe"
-                icon={<Lightbulb size={14} />}
-                onClick={() => addParallelBranch(selectedComponentId)}
-              />
-              <ParallelBranchChip
-                color="red"
-                label="∥ Ampère"
-                icon={<span className="font-black text-sm leading-none">A</span>}
-                onClick={() => addAmmeterParallelBranch(selectedComponentId)}
-              />
-            </div>
-            <p className="text-[10px] text-[#4a4560] text-center">
-              ∥ = nouvelle branche parallèle
-            </p>
+          <div className="grid grid-cols-2 gap-1.5">
+            <ComponentChip
+              icon={<Lightbulb size={18} />}
+              label={t('toolbar.lamp')}
+              color="purple"
+              badge="parallèle"
+              onClick={() => addParallelBranch(selectedComponentId)}
+            />
+            <ComponentChip
+              icon={<span className="font-black text-lg leading-none">A</span>}
+              label={t('info.amperemeter')}
+              color="red"
+              badge="parallèle"
+              onClick={() => addAmmeterParallelBranch(selectedComponentId)}
+            />
           </div>
         )}
       </section>
@@ -269,23 +265,3 @@ function ComponentChip({
   );
 }
 
-function ParallelBranchChip({
-  icon, label, color, onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  color: keyof typeof chipColors;
-  onClick: () => void;
-}) {
-  const c = chipColors[color];
-  return (
-    <button
-      onClick={onClick}
-      className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border
-                  transition-all active:scale-95 ${c.bg} ${c.text}`}
-    >
-      <span className="text-base leading-none">{icon}</span>
-      <span className={`text-[10px] font-bold leading-tight text-center ${c.text}`}>{label}</span>
-    </button>
-  );
-}
