@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Nunito', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: #1e1b2e;
+}
+
+/* Custom range slider styling */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: #4a4560;
+  outline: none;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f59e0b;
+  cursor: pointer;
+  border: 2px solid #1e1b2e;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f59e0b;
+  cursor: pointer;
+  border: 2px solid #1e1b2e;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e1b2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4a4560;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b6580;
+}
