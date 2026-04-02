@@ -115,7 +115,7 @@ const GEN_X = 60;
 const COMP_START_X = 160;
 const WIRE_Y = 120; // top wire where components sit
 
-type Wire = { x1: number; y1: number; x2: number; y2: number; current?: number };
+type Wire = { x1: number; y1: number; x2: number; y2: number; current?: number; isVoltmeter?: boolean };
 
 interface LayoutItem {
   id: string;
@@ -246,16 +246,26 @@ function layoutNode(
       // Branch current from solver
       const branchCurrent = calculatedValues[node.branches[i].id]?.current ?? 0;
 
+      // Detect voltmeter-only branch so we can color its wires differently
+      const branch = node.branches[i] as CircuitNode;
+      const isVoltmeterBranch =
+        branch.kind === 'series'
+          ? branch.children.length === 1 &&
+            branch.children[0].kind === 'component' &&
+            branch.children[0].componentType === 'voltmeter'
+          : branch.kind === 'component' && branch.componentType === 'voltmeter';
+
       const bl = layoutNode(node.branches[i], branchOffsetX, branchY, calculatedValues, branchCurrent);
       allItems.push(...bl.items);
-      allWires.push(...bl.wires);
+      // Mark voltmeter branch internal wires
+      allWires.push(...bl.wires.map(w => isVoltmeterBranch ? { ...w, isVoltmeter: true } : w));
 
       // Fork wires — vertical carries total, horizontal carries branch current
       allWires.push({ x1: forkX, y1: y, x2: forkX, y2: branchY, current: parallelCurrent });
-      allWires.push({ x1: forkX, y1: branchY, x2: bl.entryX, y2: branchY, current: branchCurrent });
+      allWires.push({ x1: forkX, y1: branchY, x2: bl.entryX, y2: branchY, current: branchCurrent, isVoltmeter: isVoltmeterBranch });
 
       // Merge wires
-      allWires.push({ x1: bl.exitX, y1: branchY, x2: mergeX, y2: branchY, current: branchCurrent });
+      allWires.push({ x1: bl.exitX, y1: branchY, x2: mergeX, y2: branchY, current: branchCurrent, isVoltmeter: isVoltmeterBranch });
       allWires.push({ x1: mergeX, y1: branchY, x2: mergeX, y2: y, current: parallelCurrent });
 
       const aboveDist = y - (branchY - bm.heightAbove);
@@ -342,8 +352,9 @@ export function CircuitWorkspace() {
   ];
 
   const allWires = [...loopWires, ...layout.wires];
-  // Per-wire color: amber when current flows, gray when open/no current
+  // Per-wire color: amber when current flows, blue for voltmeter connections, gray when open
   function wireColor(w: Wire): string {
+    if (w.isVoltmeter) return '#3b82f6'; // blue — voltmeter measuring, no current by design
     const c = w.current ?? totalCurrent;
     return c > 0.0001 ? '#fbbf24' : '#6b7280';
   }
