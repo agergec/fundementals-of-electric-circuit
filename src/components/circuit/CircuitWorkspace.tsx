@@ -1,6 +1,9 @@
+import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
 import { Generator } from '../elements/Generator';
 import type { CircuitNode, ComponentNode } from '../../engine/types';
+import { PIXEL_TO_METERS } from '../../utils/constants';
 import { Lamp } from '../elements/Lamp';
 import { Amperemeter } from '../elements/Amperemeter';
 import { Voltmeter } from '../elements/Voltmeter';
@@ -17,36 +20,19 @@ function getCircuitIssues(
   voltage: number,
   totalResistance: number,
   totalCurrent: number,
+  t: (k: string) => string,
 ): CircuitIssue[] {
   const issues: CircuitIssue[] = [];
 
   if (voltage === 0) {
-    issues.push({
-      level: 'info',
-      title: 'Generator is off',
-      detail: 'Move the voltage slider to power the circuit.',
-    });
+    issues.push({ level: 'info', title: t('circuit.generatorOff'), detail: t('circuit.generatorOffDetail') });
     return issues;
   }
 
   if (totalResistance === 0) {
-    issues.push({
-      level: 'error',
-      title: 'Short Circuit!',
-      detail:
-        'The circuit has zero resistance — infinite current would flow. ' +
-        'An amperemeter is likely connected in parallel with a component. ' +
-        'Amperemeters must always be in series.',
-    });
+    issues.push({ level: 'error', title: t('circuit.shortCircuit'), detail: t('circuit.shortCircuitDetail') });
   } else if (!isFinite(totalResistance) || (totalCurrent === 0 && voltage > 0)) {
-    issues.push({
-      level: 'warning',
-      title: 'Open Circuit',
-      detail:
-        'No current flows. Possible causes: all switches are open, ' +
-        'a voltmeter is placed in series (voltmeters must be in parallel), ' +
-        'or the circuit has no complete path back to the generator.',
-    });
+    issues.push({ level: 'warning', title: t('circuit.openCircuit'), detail: t('circuit.openCircuitDetail') });
   }
 
   return issues;
@@ -230,6 +216,7 @@ function layoutNode(node: CircuitNode, x: number, y: number): LayoutResult {
 }
 
 export function CircuitWorkspace() {
+  const { t } = useTranslation();
   const {
     circuit,
     voltage,
@@ -239,10 +226,14 @@ export function CircuitWorkspace() {
     toggleSwitch,
     totalResistance,
     totalCurrent,
+    wireEnabled,
+    wireDiameterMm,
+    wireResistance,
+    setWireTotalLengthPx,
   } = useCircuitStore();
 
   const isFlowing = totalCurrent > 0.0001;
-  const issues = getCircuitIssues(voltage, totalResistance, totalCurrent);
+  const issues = getCircuitIssues(voltage, totalResistance, totalCurrent, t);
 
   const layout = layoutNode(circuit, COMP_START_X, WIRE_Y);
   const endX = layout.exitX + 40;
@@ -283,6 +274,19 @@ export function CircuitWorkspace() {
 
   const allWires = [...loopWires, ...layout.wires];
   const wireColor = isFlowing ? '#fbbf24' : '#6b7280';
+  const wireStrokeWidth = wireEnabled ? 2 + ((wireDiameterMm - 1) / 9) * 6 : 2.5;
+
+  // Sync total wire pixel length to store for wire resistance calculation
+  const totalPx = allWires.reduce(
+    (sum, w) => sum + Math.sqrt((w.x2 - w.x1) ** 2 + (w.y2 - w.y1) ** 2), 0,
+  );
+  const prevPxRef = useRef(0);
+  useEffect(() => {
+    if (Math.abs(totalPx - prevPxRef.current) > 0.5) {
+      prevPxRef.current = totalPx;
+      setWireTotalLengthPx(totalPx);
+    }
+  }, [totalPx, setWireTotalLengthPx]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" onClick={() => selectComponent(null)}>
@@ -334,7 +338,7 @@ export function CircuitWorkspace() {
             key={`w-${i}`}
             x1={w.x1} y1={w.y1} x2={w.x2} y2={w.y2}
             stroke={wireColor}
-            strokeWidth={2.5}
+            strokeWidth={wireStrokeWidth}
             strokeLinecap="round"
           />
         ))}
@@ -410,20 +414,25 @@ export function CircuitWorkspace() {
         {/* Total values overlay */}
         <g>
           <rect
-            x={10} y={svgHeight - 65}
-            width={200} height={55}
+            x={10} y={svgHeight - (wireEnabled && wireResistance > 0 ? 82 : 65)}
+            width={220} height={wireEnabled && wireResistance > 0 ? 72 : 55}
             rx={10} fill="rgba(30,27,46,0.95)"
             stroke="#4a4560" strokeWidth={1}
           />
-          <text x={20} y={svgHeight - 42} fill="#8b83a8" fontSize={10} fontWeight="600">
-            CIRCUIT TOTALS
+          <text x={20} y={svgHeight - (wireEnabled && wireResistance > 0 ? 59 : 42)} fill="#8b83a8" fontSize={10} fontWeight="600">
+            {t('circuit.totals')}
           </text>
-          <text x={20} y={svgHeight - 26} fill="#22c55e" fontSize={12} fontWeight="bold">
+          <text x={20} y={svgHeight - (wireEnabled && wireResistance > 0 ? 43 : 26)} fill="#22c55e" fontSize={12} fontWeight="bold">
             R = {isFinite(totalResistance) ? `${totalResistance.toFixed(1)} Ω` : '∞ Ω'}
           </text>
-          <text x={120} y={svgHeight - 26} fill="#ef4444" fontSize={12} fontWeight="bold">
+          <text x={120} y={svgHeight - (wireEnabled && wireResistance > 0 ? 43 : 26)} fill="#ef4444" fontSize={12} fontWeight="bold">
             I = {totalCurrent.toFixed(3)} A
           </text>
+          {wireEnabled && wireResistance > 0 && (
+            <text x={20} y={svgHeight - 26} fill="#a78bfa" fontSize={11} fontWeight="bold">
+              {t('circuit.wireResistance')} = {wireResistance.toFixed(3)} Ω ({(totalPx * PIXEL_TO_METERS).toFixed(1)} m)
+            </text>
+          )}
         </g>
       </svg>
       </div>

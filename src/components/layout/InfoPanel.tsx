@@ -1,4 +1,5 @@
 import { X, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
 import { RESISTANCE_OPTIONS, BASE_RESISTANCE } from '../../utils/constants';
 import { formatVoltage, formatCurrent, formatResistance } from '../../utils/formatters';
@@ -22,6 +23,7 @@ function findComponentById(node: any, id: string): ComponentNode | null {
 }
 
 export function InfoPanel() {
+  const { t } = useTranslation();
   const {
     selectedComponentId,
     selectComponent,
@@ -39,13 +41,6 @@ export function InfoPanel() {
 
   const values = calculatedValues[selectedComponentId];
 
-  const typeLabels: Record<string, string> = {
-    lamp: 'Lamp',
-    ammeter: 'Amperemeter',
-    voltmeter: 'Voltmeter',
-    switch: 'Switch',
-  };
-
   const typeColors: Record<string, string> = {
     lamp: 'text-yellow-400',
     ammeter: 'text-red-400',
@@ -58,7 +53,7 @@ export function InfoPanel() {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h3 className={`font-bold ${typeColors[component.componentType]}`}>
-          {typeLabels[component.componentType]}
+          {t(`info.${component.componentType}`)}
         </h3>
         <button
           onClick={() => selectComponent(null)}
@@ -72,15 +67,15 @@ export function InfoPanel() {
       {values && (
         <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="bg-[#1e1b2e] rounded-lg p-2 text-center">
-            <div className="text-[10px] text-[#6b6580] uppercase">Voltage</div>
+            <div className="text-[10px] text-[#6b6580] uppercase">{t('info.voltage')}</div>
             <div className="text-blue-400 font-bold text-sm">{formatVoltage(values.voltage)}</div>
           </div>
           <div className="bg-[#1e1b2e] rounded-lg p-2 text-center">
-            <div className="text-[10px] text-[#6b6580] uppercase">Current</div>
+            <div className="text-[10px] text-[#6b6580] uppercase">{t('info.current')}</div>
             <div className="text-red-400 font-bold text-sm">{formatCurrent(values.current)}</div>
           </div>
           <div className="bg-[#1e1b2e] rounded-lg p-2 text-center">
-            <div className="text-[10px] text-[#6b6580] uppercase">Resistance</div>
+            <div className="text-[10px] text-[#6b6580] uppercase">{t('info.resistance')}</div>
             <div className="text-green-400 font-bold text-sm">{formatResistance(values.resistance)}</div>
           </div>
         </div>
@@ -89,7 +84,7 @@ export function InfoPanel() {
       {/* Resistance picker for lamps */}
       {component.componentType === 'lamp' && (
         <div className="mb-3">
-          <div className="text-[10px] text-[#6b6580] uppercase mb-2">Resistance</div>
+          <div className="text-[10px] text-[#6b6580] uppercase mb-2">{t('info.resistance')}</div>
           <div className="flex flex-wrap gap-1">
             {RESISTANCE_OPTIONS.map((opt) => (
               <button
@@ -123,7 +118,7 @@ export function InfoPanel() {
                 : 'bg-red-900/30 text-red-400 border-red-700 hover:bg-red-900/50'
               }`}
           >
-            {component.closed ? 'Switch is ON — Click to Open' : 'Switch is OFF — Click to Close'}
+            {component.closed ? t('info.switchOn') : t('info.switchOff')}
           </button>
         </div>
       )}
@@ -139,7 +134,7 @@ export function InfoPanel() {
                    transition-colors border border-red-900/40"
       >
         <Trash2 size={14} />
-        Remove
+        {t('info.remove')}
       </button>
     </div>
   );

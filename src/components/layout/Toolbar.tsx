@@ -1,8 +1,11 @@
 import { Lightbulb, Gauge, ToggleLeft, GitBranch, RotateCcw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
-import { MAX_VOLTAGE, MIN_VOLTAGE } from '../../utils/constants';
+import { MAX_VOLTAGE, MIN_VOLTAGE, PIXEL_TO_METERS, WIRE_MATERIALS } from '../../utils/constants';
+import type { WireMaterial } from '../../utils/constants';
 
 export function Toolbar() {
+  const { t } = useTranslation();
   const {
     addComponent,
     addAmperemeterNear,
@@ -12,6 +15,14 @@ export function Toolbar() {
     voltage,
     setVoltage,
     resetCircuit,
+    wireEnabled,
+    wireMaterial,
+    wireDiameterMm,
+    wireTotalLengthPx,
+    wireResistance,
+    setWireEnabled,
+    setWireMaterial,
+    setWireDiameterMm,
   } = useCircuitStore();
 
   const hasSelection = !!selectedComponentId;
@@ -21,7 +32,7 @@ export function Toolbar() {
       {/* Voltage Control */}
       <section>
         <h3 className="text-xs font-semibold text-[#8b83a8] uppercase tracking-wider mb-2">
-          Generator Voltage
+          {t('toolbar.generatorVoltage')}
         </h3>
         <div className="bg-[#1e1b2e] rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
@@ -46,28 +57,28 @@ export function Toolbar() {
       {/* Add Components */}
       <section>
         <h3 className="text-xs font-semibold text-[#8b83a8] uppercase tracking-wider mb-2">
-          Add to Circuit
+          {t('toolbar.addToCircuit')}
         </h3>
         <div className="grid grid-cols-2 gap-2">
           <ToolButton
             icon={<Lightbulb size={18} />}
-            label={hasSelection ? 'Lamp (series)' : 'Lamp'}
+            label={hasSelection ? t('toolbar.lampSeries') : t('toolbar.lamp')}
             color="text-yellow-400"
             onClick={() => addComponent('lamp', selectedComponentId ?? undefined)}
           />
           <ToolButton
             icon={<ToggleLeft size={18} />}
-            label="Switch"
+            label={t('toolbar.switch')}
             color="text-green-400"
             onClick={() => addComponent('switch', selectedComponentId ?? undefined)}
           />
         </div>
       </section>
 
-      {/* Measurement Tools — context-aware */}
+      {/* Measurement Tools */}
       <section>
         <h3 className="text-xs font-semibold text-[#8b83a8] uppercase tracking-wider mb-2">
-          Measurement Tools
+          {t('toolbar.measurementTools')}
         </h3>
         <div className="flex flex-col gap-2">
           <button
@@ -83,9 +94,9 @@ export function Toolbar() {
           >
             <Gauge size={16} />
             <div className="text-left">
-              <div>Add Amperemeter</div>
+              <div>{t('toolbar.addAmperemeter')}</div>
               <div className="text-[9px] text-[#6b6580]">
-                {hasSelection ? 'In series with selected' : 'At end of circuit'}
+                {hasSelection ? t('toolbar.inSeriesWithSelected') : t('toolbar.atEndOfCircuit')}
               </div>
             </div>
           </button>
@@ -103,9 +114,9 @@ export function Toolbar() {
           >
             <span className="font-bold text-base">V</span>
             <div className="text-left">
-              <div>Add Voltmeter</div>
+              <div>{t('toolbar.addVoltmeter')}</div>
               <div className="text-[9px] text-[#6b6580]">
-                {hasSelection ? 'Across selected component' : 'Select a component first'}
+                {hasSelection ? t('toolbar.acrossSelected') : t('toolbar.selectFirst')}
               </div>
             </div>
           </button>
@@ -115,7 +126,7 @@ export function Toolbar() {
       {/* Circuit Actions */}
       <section>
         <h3 className="text-xs font-semibold text-[#8b83a8] uppercase tracking-wider mb-2">
-          Actions
+          {t('toolbar.actions')}
         </h3>
         <div className="flex flex-col gap-2">
           <button
@@ -130,11 +141,86 @@ export function Toolbar() {
                        transition-colors border border-[#4a4560]"
           >
             <GitBranch size={16} />
-            Add Parallel Branch
+            {t('toolbar.addParallelBranch')}
           </button>
           <p className="text-[10px] text-[#6b6580] px-1">
-            Select a component, then click to split into parallel branches.
+            {t('toolbar.parallelHint')}
           </p>
+        </div>
+      </section>
+
+      {/* Wire Settings */}
+      <section>
+        <h3 className="text-xs font-semibold text-[#8b83a8] uppercase tracking-wider mb-2">
+          {t('toolbar.wireSettings')}
+        </h3>
+        <div className="bg-[#1e1b2e] rounded-lg p-3 flex flex-col gap-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={wireEnabled}
+              onChange={(e) => setWireEnabled(e.target.checked)}
+              className="accent-purple-400 w-4 h-4"
+            />
+            <span className="text-xs text-[#8b83a8]">{t('toolbar.enableWire')}</span>
+          </label>
+
+          {wireEnabled && (
+            <>
+              {/* Material */}
+              <div>
+                <div className="text-[10px] text-[#6b6580] uppercase mb-1">{t('toolbar.material')}</div>
+                <div className="flex gap-1">
+                  {(Object.keys(WIRE_MATERIALS) as WireMaterial[]).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setWireMaterial(m)}
+                      className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors
+                        ${wireMaterial === m
+                          ? 'bg-purple-700 text-white'
+                          : 'bg-[#2d2a3e] text-[#8b83a8] hover:bg-[#3d3a4e]'
+                        }`}
+                    >
+                      {t(`toolbar.${m}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Diameter slider */}
+              <div>
+                <div className="flex justify-between text-[10px] text-[#6b6580] uppercase mb-1">
+                  <span>{t('toolbar.diameter')}</span>
+                  <span className="text-purple-300 font-bold">{wireDiameterMm} mm</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  step={0.5}
+                  value={wireDiameterMm}
+                  onChange={(e) => setWireDiameterMm(parseFloat(e.target.value))}
+                  className="w-full accent-purple-400 cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-[#6b6580] mt-0.5">
+                  <span>1 mm</span>
+                  <span>10 mm</span>
+                </div>
+              </div>
+
+              {/* Wire info */}
+              <div className="flex flex-col gap-1 text-[10px]">
+                <div className="flex justify-between">
+                  <span className="text-[#6b6580]">{t('toolbar.estLength')}</span>
+                  <span className="text-purple-300 font-bold">{(wireTotalLengthPx * PIXEL_TO_METERS).toFixed(2)} m</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#6b6580]">{t('toolbar.wireR')}</span>
+                  <span className="text-purple-300 font-bold">{wireResistance.toFixed(4)} Ω</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </section>
 
@@ -147,7 +233,7 @@ export function Toolbar() {
                      transition-colors border border-red-900/40"
         >
           <RotateCcw size={14} />
-          Reset Circuit
+          {t('toolbar.resetCircuit')}
         </button>
       </div>
     </div>

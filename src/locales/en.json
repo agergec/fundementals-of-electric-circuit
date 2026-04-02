@@ -1,0 +1,54 @@
+{
+  "header": {
+    "tagline": "Build circuits. See the electricity flow!"
+  },
+  "toolbar": {
+    "generatorVoltage": "Generator Voltage",
+    "addToCircuit": "Add to Circuit",
+    "lamp": "Lamp",
+    "lampSeries": "Lamp (series)",
+    "switch": "Switch",
+    "measurementTools": "Measurement Tools",
+    "addAmperemeter": "Add Amperemeter",
+    "addVoltmeter": "Add Voltmeter",
+    "inSeriesWithSelected": "In series with selected",
+    "atEndOfCircuit": "At end of circuit",
+    "acrossSelected": "Across selected component",
+    "selectFirst": "Select a component first",
+    "actions": "Actions",
+    "addParallelBranch": "Add Parallel Branch",
+    "parallelHint": "Select a component, then click to split into parallel branches.",
+    "resetCircuit": "Reset Circuit",
+    "wireSettings": "Wire Settings",
+    "enableWire": "Enable wire resistance",
+    "material": "Material",
+    "diameter": "Diameter",
+    "silver": "Silver",
+    "copper": "Copper",
+    "steel": "Steel",
+    "estLength": "Est. length",
+    "wireR": "Wire R"
+  },
+  "info": {
+    "voltage": "Voltage",
+    "current": "Current",
+    "resistance": "Resistance",
+    "switchOn": "Switch is ON — Click to Open",
+    "switchOff": "Switch is OFF — Click to Close",
+    "remove": "Remove",
+    "lamp": "Lamp",
+    "amperemeter": "Amperemeter",
+    "voltmeter": "Voltmeter",
+    "switch": "Switch"
+  },
+  "circuit": {
+    "totals": "CIRCUIT TOTALS",
+    "wireResistance": "R_wire",
+    "generatorOff": "Generator is off",
+    "generatorOffDetail": "Move the voltage slider to power the circuit.",
+    "shortCircuit": "Short Circuit!",
+    "shortCircuitDetail": "The circuit has zero resistance — infinite current would flow. An amperemeter is likely connected in parallel with a component. Amperemeters must always be in series.",
+    "openCircuit": "Open Circuit",
+    "openCircuitDetail": "No current flows. Possible causes: all switches are open, a voltmeter is placed in series (voltmeters must be in parallel), or the circuit has no complete path back to the generator."
+  }
+}

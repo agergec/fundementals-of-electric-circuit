@@ -12,6 +12,16 @@ export const RESISTANCE_OPTIONS = [
   { label: '4R', multiplier: 4 },
 ];
 
+export const PIXEL_TO_METERS = 0.005; // 1 SVG pixel = 5mm real world
+
+export const WIRE_MATERIALS = {
+  silver: { resistivity: 1.59e-8 },
+  copper: { resistivity: 1.68e-8 },
+  steel:  { resistivity: 1.00e-7 },
+} as const;
+
+export type WireMaterial = keyof typeof WIRE_MATERIALS;
+
 export const COLORS = {
   voltage: '#3b82f6',   // blue
   current: '#ef4444',   // red

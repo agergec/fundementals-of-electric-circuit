@@ -8,7 +8,8 @@ import type {
   ComponentType,
 } from '../engine/types';
 import { solveCircuit } from '../engine/solve';
-import { DEFAULT_VOLTAGE } from '../utils/constants';
+import { DEFAULT_VOLTAGE, PIXEL_TO_METERS, WIRE_MATERIALS } from '../utils/constants';
+import type { WireMaterial } from '../utils/constants';
 
 let nextId = 1;
 function uid(): string {
@@ -171,6 +172,13 @@ interface CircuitStore {
   totalCurrent: number;
   selectedComponentId: string | null;
 
+  // Wire resistance settings
+  wireEnabled: boolean;
+  wireMaterial: WireMaterial;
+  wireDiameterMm: number;
+  wireTotalLengthPx: number;
+  wireResistance: number;
+
   setVoltage: (v: number) => void;
   toggleSwitch: (id: string) => void;
   addComponent: (type: ComponentType, afterId?: string) => void;
@@ -182,6 +190,10 @@ interface CircuitStore {
   selectComponent: (id: string | null) => void;
   resetCircuit: () => void;
   recalculate: () => void;
+  setWireEnabled: (v: boolean) => void;
+  setWireMaterial: (m: WireMaterial) => void;
+  setWireDiameterMm: (d: number) => void;
+  setWireTotalLengthPx: (px: number) => void;
 }
 
 function createInitialCircuit(): SeriesNode {
@@ -192,20 +204,52 @@ function createInitialCircuit(): SeriesNode {
   ]);
 }
 
-function recalc(state: { circuit: SeriesNode; voltage: number }) {
+function calcWireResistance(state: {
+  wireEnabled: boolean;
+  wireMaterial: WireMaterial;
+  wireDiameterMm: number;
+  wireTotalLengthPx: number;
+}): number {
+  if (!state.wireEnabled || state.wireTotalLengthPx <= 0) return 0;
+  const { resistivity } = WIRE_MATERIALS[state.wireMaterial];
+  const L = state.wireTotalLengthPx * PIXEL_TO_METERS;
+  const radius = (state.wireDiameterMm / 2) / 1000; // m
+  const A = Math.PI * radius * radius;
+  return resistivity * L / A;
+}
+
+function recalc(state: {
+  circuit: SeriesNode;
+  voltage: number;
+  wireEnabled: boolean;
+  wireMaterial: WireMaterial;
+  wireDiameterMm: number;
+  wireTotalLengthPx: number;
+}) {
   const result = solveCircuit(state.circuit, state.voltage);
+  const wireR = calcWireResistance(state);
+  const totalR = result.totalResistance + wireR;
+  const totalI = totalR > 0 && isFinite(totalR) ? state.voltage / totalR : 0;
   return {
     calculatedValues: result.values,
-    totalResistance: result.totalResistance,
-    totalCurrent: result.totalCurrent,
+    totalResistance: totalR,
+    totalCurrent: totalI,
+    wireResistance: wireR,
   };
 }
 
 export const useCircuitStore = create<CircuitStore>((set) => {
   const initialCircuit = createInitialCircuit();
+  const wireDefaults = {
+    wireEnabled: false,
+    wireMaterial: 'copper' as WireMaterial,
+    wireDiameterMm: 1,
+    wireTotalLengthPx: 0,
+  };
   const initialCalc = recalc({
     circuit: initialCircuit,
     voltage: DEFAULT_VOLTAGE,
+    ...wireDefaults,
   });
 
   return {
@@ -215,6 +259,8 @@ export const useCircuitStore = create<CircuitStore>((set) => {
     totalResistance: initialCalc.totalResistance,
     totalCurrent: initialCalc.totalCurrent,
     selectedComponentId: null,
+    ...wireDefaults,
+    wireResistance: 0,
 
     setVoltage: (v) => {
       set((state) => ({
@@ -394,16 +440,21 @@ export const useCircuitStore = create<CircuitStore>((set) => {
 
     resetCircuit: () => {
       const circuit = createInitialCircuit();
-      set({
+      set((state) => ({
         circuit,
         voltage: DEFAULT_VOLTAGE,
         selectedComponentId: null,
-        ...recalc({ circuit, voltage: DEFAULT_VOLTAGE }),
-      });
+        ...recalc({ ...state, circuit, voltage: DEFAULT_VOLTAGE }),
+      }));
     },
 
     recalculate: () => {
       set((state) => recalc(state));
     },
+
+    setWireEnabled: (v) => set((state) => ({ wireEnabled: v, ...recalc({ ...state, wireEnabled: v }) })),
+    setWireMaterial: (m) => set((state) => ({ wireMaterial: m, ...recalc({ ...state, wireMaterial: m }) })),
+    setWireDiameterMm: (d) => set((state) => ({ wireDiameterMm: d, ...recalc({ ...state, wireDiameterMm: d }) })),
+    setWireTotalLengthPx: (px) => set((state) => ({ wireTotalLengthPx: px, ...recalc({ ...state, wireTotalLengthPx: px }) })),
   };
 });

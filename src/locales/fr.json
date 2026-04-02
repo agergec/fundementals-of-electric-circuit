@@ -1,0 +1,54 @@
+{
+  "header": {
+    "tagline": "Construis des circuits. Observe le courant électrique !"
+  },
+  "toolbar": {
+    "generatorVoltage": "Tension du générateur",
+    "addToCircuit": "Ajouter au circuit",
+    "lamp": "Lampe",
+    "lampSeries": "Lampe (série)",
+    "switch": "Interrupteur",
+    "measurementTools": "Outils de mesure",
+    "addAmperemeter": "Ajouter un ampèremètre",
+    "addVoltmeter": "Ajouter un voltmètre",
+    "inSeriesWithSelected": "En série avec la sélection",
+    "atEndOfCircuit": "En fin de circuit",
+    "acrossSelected": "En parallèle avec la sélection",
+    "selectFirst": "Sélectionne un composant d'abord",
+    "actions": "Actions",
+    "addParallelBranch": "Ajouter une branche parallèle",
+    "parallelHint": "Sélectionne un composant, puis clique pour créer des branches parallèles.",
+    "resetCircuit": "Réinitialiser le circuit",
+    "wireSettings": "Paramètres des fils",
+    "enableWire": "Activer la résistance des fils",
+    "material": "Matériau",
+    "diameter": "Diamètre",
+    "silver": "Argent",
+    "copper": "Cuivre",
+    "steel": "Acier",
+    "estLength": "Long. estimée",
+    "wireR": "R fil"
+  },
+  "info": {
+    "voltage": "Tension",
+    "current": "Intensité",
+    "resistance": "Résistance",
+    "switchOn": "Interrupteur FERMÉ — Cliquer pour ouvrir",
+    "switchOff": "Interrupteur OUVERT — Cliquer pour fermer",
+    "remove": "Supprimer",
+    "lamp": "Lampe",
+    "amperemeter": "Ampèremètre",
+    "voltmeter": "Voltmètre",
+    "switch": "Interrupteur"
+  },
+  "circuit": {
+    "totals": "TOTAUX DU CIRCUIT",
+    "wireResistance": "R_fil",
+    "generatorOff": "Générateur éteint",
+    "generatorOffDetail": "Déplace le curseur de tension pour alimenter le circuit.",
+    "shortCircuit": "Court-circuit !",
+    "shortCircuitDetail": "Le circuit a une résistance nulle — un courant infini circulerait. Un ampèremètre est probablement connecté en parallèle. Les ampèremètres doivent toujours être en série.",
+    "openCircuit": "Circuit ouvert",
+    "openCircuitDetail": "Aucun courant ne circule. Causes possibles : tous les interrupteurs sont ouverts, un voltmètre est placé en série (les voltmètres doivent être en parallèle), ou le circuit n'a pas de chemin complet vers le générateur."
+  }
+}
