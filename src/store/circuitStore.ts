@@ -282,30 +282,6 @@ export const useCircuitStore = create<CircuitStore>((set) => {
 
     addComponent: (type, afterId) => {
       set((state) => {
-        if (type === 'voltmeter') {
-          if (afterId) {
-            const circuit = cloneNode(state.circuit) as SeriesNode;
-            const found = findNode(circuit, afterId);
-            if (!found) return state;
-            const targetNode = found.node;
-            if (found.parent.kind === 'series') {
-              const parallelNode: ParallelNode = {
-                kind: 'parallel',
-                id: uid(),
-                branches: [
-                  makeSeriesNode([targetNode]),
-                  makeSeriesNode([makeComponent('voltmeter')]),
-                ],
-              };
-              found.parent.children[found.index] = parallelNode;
-            } else if (targetNode.kind === 'parallel') {
-              targetNode.branches.push(makeSeriesNode([makeComponent('voltmeter')]));
-            }
-            return { circuit, ...recalc({ ...state, circuit }) };
-          }
-          return state;
-        }
-
         const circuit = cloneNode(state.circuit) as SeriesNode;
         const newComponent = type === 'lamp' ? makeLamp() : makeComponent(type);
 

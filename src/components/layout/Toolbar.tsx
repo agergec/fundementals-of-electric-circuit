@@ -105,18 +105,18 @@ export function Toolbar() {
             onClick={() => {
               if (hasSelection) {
                 addVoltmeterAcross(selectedComponentId);
+              } else {
+                addComponent('voltmeter');
               }
             }}
-            disabled={!hasSelection}
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1e1b2e] text-sm font-medium
-                       text-blue-400 hover:bg-blue-900/20 disabled:opacity-30 disabled:cursor-not-allowed
-                       transition-colors border border-[#4a4560]"
+                       text-blue-400 hover:bg-blue-900/20 transition-colors border border-[#4a4560]"
           >
             <span className="font-bold text-base">V</span>
             <div className="text-left">
               <div>{t('toolbar.addVoltmeter')}</div>
               <div className="text-[9px] text-[#6b6580]">
-                {hasSelection ? t('toolbar.acrossSelected') : t('toolbar.selectFirst')}
+                {hasSelection ? t('toolbar.voltmeterAcross') : t('toolbar.voltmeterSeries')}
               </div>
             </div>
           </button>

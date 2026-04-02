@@ -50,6 +50,14 @@
     "shortCircuit": "Court-circuit !",
     "shortCircuitDetail": "Le circuit a une résistance nulle — un courant infini circulerait. Un ampèremètre est probablement connecté en parallèle. Les ampèremètres doivent toujours être en série.",
     "openCircuit": "Circuit ouvert",
-    "openCircuitDetail": "Aucun courant ne circule. Causes possibles : tous les interrupteurs sont ouverts, un voltmètre est placé en série (les voltmètres doivent être en parallèle), ou le circuit n'a pas de chemin complet vers le générateur."
+    "openCircuitDetail": "Aucun courant ne circule. Vérifie que tous les interrupteurs sont fermés et qu'il existe un chemin complet depuis le générateur.",
+    "voltmeterInSeries": "Voltmètre en série !",
+    "voltmeterInSeriesDetail": "Un voltmètre a une très grande résistance — placé en série, il bloque tout le courant. Le voltmètre doit être branché EN PARALLÈLE, aux bornes du composant à mesurer.",
+    "ammeterInParallel": "Ampèremètre en parallèle !",
+    "ammeterInParallelDetail": "Un ampèremètre a une résistance quasi nulle — placé en parallèle, il crée un court-circuit. Les ampèremètres doivent toujours être EN SÉRIE."
+  },
+  "toolbar": {
+    "voltmeterSeries": "En série (fin de circuit)",
+    "voltmeterAcross": "En parallèle avec la sélection"
   }
 }

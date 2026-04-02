@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
 import { Generator } from '../elements/Generator';
-import type { CircuitNode, ComponentNode } from '../../engine/types';
+import type { CircuitNode, ComponentNode, SeriesNode, ParallelNode } from '../../engine/types';
 import { PIXEL_TO_METERS } from '../../utils/constants';
 import { Lamp } from '../elements/Lamp';
 import { Amperemeter } from '../elements/Amperemeter';
@@ -16,26 +16,87 @@ interface CircuitIssue {
   detail: string;
 }
 
-function getCircuitIssues(
+interface AnalysisResult {
+  issues: CircuitIssue[];
+  errorIds: Set<string>; // component IDs with structural mistakes
+}
+
+/** Scan the circuit tree for structural mistakes (voltmeter in series, ammeter in parallel). */
+function scanMistakes(
+  node: CircuitNode,
+  inParallel = false,
+): { voltmetersInSeries: string[]; ammetersInParallel: string[] } {
+  const result = { voltmetersInSeries: [] as string[], ammetersInParallel: [] as string[] };
+
+  function scanSeries(s: SeriesNode, parentInParallel: boolean) {
+    for (const child of s.children) {
+      if (child.kind === 'component') {
+        if (child.componentType === 'voltmeter' && !parentInParallel) {
+          result.voltmetersInSeries.push(child.id);
+        }
+      } else if (child.kind === 'parallel') {
+        scanParallel(child as ParallelNode);
+      }
+    }
+  }
+
+  function scanParallel(p: ParallelNode) {
+    for (const branch of p.branches) {
+      // Ammeter in parallel: a branch whose only component is an ammeter
+      const hasOnlyAmmeter =
+        branch.children.length === 1 &&
+        branch.children[0].kind === 'component' &&
+        branch.children[0].componentType === 'ammeter';
+      if (hasOnlyAmmeter) {
+        result.ammetersInParallel.push((branch.children[0] as ComponentNode).id);
+      }
+      scanSeries(branch, true);
+    }
+  }
+
+  if (node.kind === 'series') scanSeries(node as SeriesNode, inParallel);
+  else if (node.kind === 'parallel') scanParallel(node as ParallelNode);
+
+  return result;
+}
+
+function analyzeCircuit(
+  circuit: CircuitNode,
   voltage: number,
   totalResistance: number,
   totalCurrent: number,
   t: (k: string) => string,
-): CircuitIssue[] {
+): AnalysisResult {
   const issues: CircuitIssue[] = [];
+  const errorIds = new Set<string>();
 
   if (voltage === 0) {
     issues.push({ level: 'info', title: t('circuit.generatorOff'), detail: t('circuit.generatorOffDetail') });
-    return issues;
+    return { issues, errorIds };
   }
 
-  if (totalResistance === 0) {
-    issues.push({ level: 'error', title: t('circuit.shortCircuit'), detail: t('circuit.shortCircuitDetail') });
-  } else if (!isFinite(totalResistance) || (totalCurrent === 0 && voltage > 0)) {
-    issues.push({ level: 'warning', title: t('circuit.openCircuit'), detail: t('circuit.openCircuitDetail') });
+  // Layer 1: structural tree scan
+  const mistakes = scanMistakes(circuit);
+
+  for (const id of mistakes.voltmetersInSeries) {
+    errorIds.add(id);
+    issues.push({ level: 'warning', title: t('circuit.voltmeterInSeries'), detail: t('circuit.voltmeterInSeriesDetail') });
+  }
+  for (const id of mistakes.ammetersInParallel) {
+    errorIds.add(id);
+    issues.push({ level: 'error', title: t('circuit.ammeterInParallel'), detail: t('circuit.ammeterInParallelDetail') });
   }
 
-  return issues;
+  // Layer 2: math fallback (only when no structural issues explain it)
+  if (issues.length === 0) {
+    if (totalResistance === 0) {
+      issues.push({ level: 'error', title: t('circuit.shortCircuit'), detail: t('circuit.shortCircuitDetail') });
+    } else if (!isFinite(totalResistance) || (totalCurrent === 0 && voltage > 0)) {
+      issues.push({ level: 'warning', title: t('circuit.openCircuit'), detail: t('circuit.openCircuitDetail') });
+    }
+  }
+
+  return { issues, errorIds };
 }
 
 // Layout tuning
@@ -239,7 +300,7 @@ export function CircuitWorkspace() {
   } = useCircuitStore();
 
   const isFlowing = totalCurrent > 0.0001;
-  const issues = getCircuitIssues(voltage, totalResistance, totalCurrent, t);
+  const { issues, errorIds } = analyzeCircuit(circuit, voltage, totalResistance, totalCurrent, t);
 
   const layout = layoutNode(circuit, COMP_START_X, WIRE_Y, calculatedValues, totalCurrent);
   const endX = layout.exitX + 40;
@@ -360,13 +421,29 @@ export function CircuitWorkspace() {
           const comp = item.node;
           const vals = calculatedValues[item.id];
           const isSelected = selectedComponentId === item.id;
+          const hasError = errorIds.has(item.id);
 
           const handleClick = (e: React.MouseEvent) => {
             e.stopPropagation();
             selectComponent(item.id);
           };
 
-          switch (comp.componentType) {
+          return (
+            <g key={item.id}>
+              {/* Pulsing error ring for structural mistakes */}
+              {hasError && (
+                <circle
+                  cx={item.x} cy={item.y} r={24}
+                  fill="none"
+                  stroke="#ef4444"
+                  strokeWidth={2.5}
+                  strokeDasharray="6 3"
+                  opacity={0.9}
+                >
+                  <animate attributeName="stroke-dashoffset" from="0" to="18" dur="0.8s" repeatCount="indefinite" />
+                </circle>
+              )}
+              {((): React.ReactNode => { switch (comp.componentType) {
             case 'lamp':
               return (
                 <Lamp
@@ -412,7 +489,9 @@ export function CircuitWorkspace() {
               );
             default:
               return null;
-          }
+          } })()}
+            </g>
+          );
         })}
 
         {/* Wire resistance visual component on bottom wire */}

@@ -50,6 +50,14 @@
     "shortCircuit": "Short Circuit!",
     "shortCircuitDetail": "The circuit has zero resistance — infinite current would flow. An amperemeter is likely connected in parallel with a component. Amperemeters must always be in series.",
     "openCircuit": "Open Circuit",
-    "openCircuitDetail": "No current flows. Possible causes: all switches are open, a voltmeter is placed in series (voltmeters must be in parallel), or the circuit has no complete path back to the generator."
+    "openCircuitDetail": "No current flows. Check that all switches are closed and there is a complete path from the generator.",
+    "voltmeterInSeries": "Voltmeter in series!",
+    "voltmeterInSeriesDetail": "A voltmeter has very high resistance — placing it in series blocks all current. Voltmeters must be connected in PARALLEL, across the component you want to measure.",
+    "ammeterInParallel": "Amperemeter in parallel!",
+    "ammeterInParallelDetail": "An amperemeter has near-zero resistance — placing it in parallel creates a short circuit. Amperemeters must always be in SERIES."
+  },
+  "toolbar": {
+    "voltmeterSeries": "In series (end of circuit)",
+    "voltmeterAcross": "In parallel with selected"
   }
 }
