@@ -12,7 +12,7 @@ export const RESISTANCE_OPTIONS = [
   { label: '4R', multiplier: 4 },
 ];
 
-export const PIXEL_TO_METERS = 0.005; // 1 SVG pixel = 5mm real world
+export const PIXEL_TO_METERS = 0.001; // 1 SVG pixel = 1mm real world (lab bench scale)
 
 export const WIRE_MATERIALS = {
   silver:   { resistivity: 1.59e-8 },
