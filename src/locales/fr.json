@@ -57,6 +57,13 @@
     "voltmeterInSeries": "Voltmètre en série !",
     "voltmeterInSeriesDetail": "Un voltmètre a une très grande résistance — placé en série, il bloque tout le courant. Le voltmètre doit être branché EN PARALLÈLE, aux bornes du composant à mesurer.",
     "ammeterInParallel": "Ampèremètre en parallèle !",
-    "ammeterInParallelDetail": "Un ampèremètre a une résistance quasi nulle — placé en parallèle, il crée un court-circuit. Les ampèremètres doivent toujours être EN SÉRIE."
+    "ammeterInParallelDetail": "Un ampèremètre a une résistance quasi nulle — placé en parallèle, il crée un court-circuit. Les ampèremètres doivent toujours être EN SÉRIE.",
+    "wireInfoTitle": "Résistance des fils activée",
+    "wireInfoMaterial": "Matériau",
+    "wireInfoDiameter": "Diamètre",
+    "wireInfoLength": "Longueur estimée",
+    "wireInfoR": "Résistance du fil",
+    "wireInfoVoltageDrop": "Chute de tension",
+    "wireInfoExplain": "Dans un circuit réel, les fils ont une résistance qui dépend du matériau, de la longueur et du diamètre. Plus le fil est long ou fin, plus sa résistance est élevée — et plus la tension disponible pour les composants est réduite."
   }
 }

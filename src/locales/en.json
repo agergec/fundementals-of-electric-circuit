@@ -57,6 +57,13 @@
     "voltmeterInSeries": "Voltmeter in series!",
     "voltmeterInSeriesDetail": "A voltmeter has very high resistance — placing it in series blocks all current. Voltmeters must be connected in PARALLEL, across the component you want to measure.",
     "ammeterInParallel": "Amperemeter in parallel!",
-    "ammeterInParallelDetail": "An amperemeter has near-zero resistance — placing it in parallel creates a short circuit. Amperemeters must always be in SERIES."
+    "ammeterInParallelDetail": "An amperemeter has near-zero resistance — placing it in parallel creates a short circuit. Amperemeters must always be in SERIES.",
+    "wireInfoTitle": "Wire resistance enabled",
+    "wireInfoMaterial": "Material",
+    "wireInfoDiameter": "Diameter",
+    "wireInfoLength": "Estimated length",
+    "wireInfoR": "Wire resistance",
+    "wireInfoVoltageDrop": "Voltage drop",
+    "wireInfoExplain": "In a real circuit, wires have resistance that depends on material, length, and diameter. Longer or thinner wires have higher resistance — reducing the voltage available to the components."
   }
 }

@@ -308,6 +308,7 @@ export function CircuitWorkspace() {
     totalResistance,
     totalCurrent,
     wireEnabled,
+    wireMaterial,
     wireDiameterMm,
     wireResistance,
     setWireTotalLengthPx,
@@ -471,6 +472,41 @@ export function CircuitWorkspace() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Wire resistance info panel */}
+      {wireEnabled && wireResistance >= 0 && (
+        <div className="shrink-0 mx-4 mt-2 rounded-xl border border-purple-500/30 bg-purple-950/30 px-4 py-3 text-xs">
+          <div className="flex items-start gap-3">
+            {/* Icon */}
+            <span className="text-purple-400 text-base mt-0.5 shrink-0">⚗</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-purple-300 mb-1">{t('circuit.wireInfoTitle')}</div>
+              {/* Stats row */}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
+                <span className="text-[#8b83a8]">
+                  {t('circuit.wireInfoMaterial')}: <span className="text-purple-300 font-semibold">{t(`toolbar.${wireMaterial}`)}</span>
+                </span>
+                <span className="text-[#8b83a8]">
+                  {t('circuit.wireInfoDiameter')}: <span className="text-purple-300 font-semibold">{wireDiameterMm.toFixed(1)} mm</span>
+                </span>
+                <span className="text-[#8b83a8]">
+                  {t('circuit.wireInfoLength')}: <span className="text-purple-300 font-semibold">{(totalPx * PIXEL_TO_METERS * 100).toFixed(0)} cm</span>
+                </span>
+                <span className="text-[#8b83a8]">
+                  {t('circuit.wireInfoR')}: <span className="text-purple-300 font-semibold">{wireResistance.toFixed(4)} Ω</span>
+                </span>
+                {totalCurrent > 0 && (
+                  <span className="text-[#8b83a8]">
+                    {t('circuit.wireInfoVoltageDrop')}: <span className="text-amber-400 font-semibold">{(wireResistance * totalCurrent).toFixed(3)} V</span>
+                  </span>
+                )}
+              </div>
+              {/* Educational text */}
+              <p className="text-[#6b6580] leading-relaxed">{t('circuit.wireInfoExplain')}</p>
+            </div>
+          </div>
         </div>
       )}
 
