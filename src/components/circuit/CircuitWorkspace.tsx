@@ -234,10 +234,6 @@ function layoutNode(
     let overallAbove = 0;
     let overallBelow = 0;
 
-    // Fork/merge vertical wires carry the total current entering the parallel group.
-    // Use nodeCurrent (passed from parent) — it's 0 when any upstream switch is open.
-    const parallelCurrent = nodeCurrent;
-
     for (let i = 0; i < node.branches.length; i++) {
       const branchY = offsetY + branchYPositions[i];
       const bm = branchMeasures[i];
@@ -260,13 +256,13 @@ function layoutNode(
       // Mark voltmeter branch internal wires
       allWires.push(...bl.wires.map(w => isVoltmeterBranch ? { ...w, isVoltmeter: true } : w));
 
-      // Fork wires — vertical carries total, horizontal carries branch current
-      allWires.push({ x1: forkX, y1: y, x2: forkX, y2: branchY, current: parallelCurrent });
+      // Fork wires — vertical and horizontal carry the BRANCH current
+      allWires.push({ x1: forkX, y1: y, x2: forkX, y2: branchY, current: branchCurrent, isVoltmeter: isVoltmeterBranch });
       allWires.push({ x1: forkX, y1: branchY, x2: bl.entryX, y2: branchY, current: branchCurrent, isVoltmeter: isVoltmeterBranch });
 
       // Merge wires
       allWires.push({ x1: bl.exitX, y1: branchY, x2: mergeX, y2: branchY, current: branchCurrent, isVoltmeter: isVoltmeterBranch });
-      allWires.push({ x1: mergeX, y1: branchY, x2: mergeX, y2: y, current: parallelCurrent });
+      allWires.push({ x1: mergeX, y1: branchY, x2: mergeX, y2: y, current: branchCurrent, isVoltmeter: isVoltmeterBranch });
 
       const aboveDist = y - (branchY - bm.heightAbove);
       const belowDist = (branchY + bm.heightBelow) - y;
