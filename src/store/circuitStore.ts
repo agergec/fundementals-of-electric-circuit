@@ -7,7 +7,8 @@ import type {
   CalculatedValues,
   ComponentType,
 } from '../engine/types';
-import { solveCircuit } from '../engine/solve';
+import { distribute } from '../engine/distribute';
+import { calcResistance } from '../engine/resistance';
 import { DEFAULT_VOLTAGE, PIXEL_TO_METERS, WIRE_MATERIALS } from '../utils/constants';
 import type { WireMaterial } from '../utils/constants';
 
@@ -227,12 +228,20 @@ function recalc(state: {
   wireDiameterMm: number;
   wireTotalLengthPx: number;
 }) {
-  const result = solveCircuit(state.circuit, state.voltage);
+  const circuitR = calcResistance(state.circuit);
   const wireR = calcWireResistance(state);
-  const totalR = result.totalResistance + wireR;
+  const totalR = circuitR + wireR;
   const totalI = totalR > 0 && isFinite(totalR) ? state.voltage / totalR : 0;
+
+  // Voltage available to the circuit after wire drops (V_circuit = I × R_circuit)
+  const circuitVoltage = isFinite(circuitR) ? totalI * circuitR : 0;
+
+  // Re-distribute with corrected voltage and current so component values reflect wire loss
+  const values: Record<string, import('../engine/types').CalculatedValues> = {};
+  distribute(state.circuit, circuitVoltage, totalI, values);
+
   return {
-    calculatedValues: result.values,
+    calculatedValues: values,
     totalResistance: totalR,
     totalCurrent: totalI,
     wireResistance: wireR,
