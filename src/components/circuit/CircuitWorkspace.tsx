@@ -377,8 +377,10 @@ export function CircuitWorkspace() {
   // Auto-fit whenever the circuit layout dimensions change significantly
   const svgWidthRef = useRef(svgWidth);
   const svgHeightRef = useRef(svgHeight);
-  svgWidthRef.current = svgWidth;
-  svgHeightRef.current = svgHeight;
+  useEffect(() => {
+    svgWidthRef.current = svgWidth;
+    svgHeightRef.current = svgHeight;
+  });
 
   const fitToView = useCallback(() => {
     if (!svgRef.current) return;
@@ -394,7 +396,7 @@ export function CircuitWorkspace() {
       y: (ch - svgHeightRef.current * newScale) / 2,
       scale: newScale,
     });
-  }, []);
+  }, [setView]);
 
   // Fit on first render and when circuit resets
   const circuitId = circuit.id;
@@ -432,6 +434,8 @@ export function CircuitWorkspace() {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
+  const [isDragging, setIsDragging] = useState(false);
+
   const onMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
     dragState.current = { startX: e.clientX, startY: e.clientY, panX: view.x, panY: view.y, moved: false };
@@ -441,12 +445,15 @@ export function CircuitWorkspace() {
     if (!ds) return;
     const dx = e.clientX - ds.startX;
     const dy = e.clientY - ds.startY;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) ds.moved = true;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      ds.moved = true;
+      setIsDragging(true);
+    }
     if (ds.moved) {
       setView(v => ({ ...v, x: ds.panX + dx, y: ds.panY + dy }));
     }
   };
-  const onMouseUp = () => { dragState.current = null; };
+  const onMouseUp = () => { dragState.current = null; setIsDragging(false); };
   const onSvgClick = () => { if (!dragState.current?.moved) selectComponent(null); };
 
   return (
@@ -515,7 +522,7 @@ export function CircuitWorkspace() {
         <svg
           ref={svgRef}
           width="100%" height="100%"
-          style={{ cursor: dragState.current?.moved ? 'grabbing' : 'grab', display: 'block' }}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', display: 'block' }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}

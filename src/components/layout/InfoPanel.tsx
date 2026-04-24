@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
 import { RESISTANCE_OPTIONS, BASE_RESISTANCE } from '../../utils/constants';
 import { formatVoltage, formatCurrent, formatResistance } from '../../utils/formatters';
-import type { ComponentNode } from '../../engine/types';
+import type { CircuitNode, ComponentNode } from '../../engine/types';
 
-function findComponentById(node: any, id: string): ComponentNode | null {
+function findComponentById(node: CircuitNode, id: string): ComponentNode | null {
   if (node.kind === 'component' && node.id === id) return node;
   if (node.kind === 'series') {
     for (const child of node.children) {
