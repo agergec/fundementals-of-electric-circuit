@@ -5,6 +5,7 @@ import { FreeComponent } from './FreeComponent';
 import { FreeWire } from './FreeWire';
 import { WireDrawingLayer } from './WireDrawingLayer';
 import { BreadboardGrid } from './BreadboardGrid';
+import { ChallengePanel } from './ChallengePanel';
 import { PIXEL_TO_METERS } from '../../utils/constants';
 import type { FreeComponent as FreeComponentT } from '../../engine/types';
 
@@ -388,6 +389,8 @@ export function FreeCanvas() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      <ChallengePanel />
+
       {/* Tool indicator */}
       <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 bg-[#2d2a3e] border-b border-[#4a4560]">
         <span className="text-[10px] font-semibold text-[#6b6580] uppercase tracking-wider">

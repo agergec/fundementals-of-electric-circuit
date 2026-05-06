@@ -3,6 +3,7 @@ import { Lightbulb, ToggleLeft, RotateCcw, Zap, MousePointer2, Cable } from 'luc
 import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
 import { useFreeModeStore } from '../../store/freeModeStore';
+import { useChallengeStore } from '../../store/challengeStore';
 import { useModeStore } from '../../store/modeStore';
 import { MAX_VOLTAGE, MIN_VOLTAGE, PIXEL_TO_METERS, WIRE_MATERIALS } from '../../utils/constants';
 import type { WireMaterial } from '../../utils/constants';
@@ -163,6 +164,7 @@ function FreeModeToolbar() {
     breadboard,
     toggleBreadboard,
   } = useFreeModeStore();
+  const { active: challengeActive, newChallenge, setActive: setChallengeActive } = useChallengeStore();
 
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [loadMsg, setLoadMsg] = useState<string | null>(null);
@@ -188,6 +190,18 @@ function FreeModeToolbar() {
             onClick={() => setActiveTool('wire')}
           />
         </div>
+      </section>
+
+      {/* Challenge toggle */}
+      <section>
+        <button onClick={() => { if (challengeActive) setChallengeActive(false); else newChallenge(); }}
+          className={`w-full py-2 rounded-lg text-xs font-bold transition-colors border
+            ${challengeActive
+              ? 'bg-amber-700/30 text-amber-400 border-amber-600'
+              : 'bg-[#1e1b2e] text-[#8b83a8] border-[#4a4560] hover:bg-[#3d3a4e]'
+            }`}>
+          🎯 Challenge
+        </button>
       </section>
 
       {/* Breadboard toggle */}
