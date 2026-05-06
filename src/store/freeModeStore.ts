@@ -30,6 +30,8 @@ function makeComponent(
     rotation: 0,
     resistanceMultiplier: 1,
     closed: type === 'switch' ? true : undefined,
+    currentRating: type === 'fuse' ? 2 : undefined,
+    voltage: type === 'generator' ? DEFAULT_VOLTAGE : undefined,
   };
 }
 
@@ -103,6 +105,9 @@ interface FreeModeStore {
   cancelWire: () => void;
   rotateComponent: (id: string, dir: number) => void;
   setRotateText: (id: string, enabled: boolean) => void;
+  setFuseRating: (id: string, rating: number) => void;
+  resetFuse: (id: string) => void;
+  setGeneratorVoltage: (id: string, v: number) => void;
   resetCircuit: () => void;
   saveCircuit: () => void;
   loadCircuit: () => void;
@@ -287,7 +292,7 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
   setLampMultiplier: (id, multiplier) => {
     set((s) => {
       const components = s.components.map((c) =>
-        c.id === id && c.componentType === 'lamp'
+        c.id === id && (c.componentType === 'lamp' || c.componentType === 'resistor')
           ? { ...c, resistanceMultiplier: multiplier }
           : c,
       );
@@ -402,6 +407,27 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
     return { components };
   }),
 
+  setFuseRating: (id, rating) => set((s) => {
+    const components = s.components.map((c) =>
+      c.id === id ? { ...c, currentRating: rating } : c,
+    );
+    return { components, ...recalc({ ...s, components }) };
+  }),
+
+  resetFuse: (id) => set((s) => {
+    const components = s.components.map((c) =>
+      c.id === id ? { ...c, blown: false } : c,
+    );
+    return { components, ...recalc({ ...s, components }) };
+  }),
+
+  setGeneratorVoltage: (id, v) => set((s) => {
+    const components = s.components.map((c) =>
+      c.id === id ? { ...c, voltage: v } : c,
+    );
+    return { components, ...recalc({ ...s, components }) };
+  }),
+
   saveCircuit: () => {
     const s = useFreeModeStore.getState();
     const data = {
@@ -480,16 +506,43 @@ function recalc(
     'components' | 'wires' | 'voltage' | 'wireEnabled' | 'wireMaterial' | 'wireDiameterMm'
   >,
 ): Partial<FreeModeStore> {
-  return recalcRaw(s.components, s.wires, s.voltage);
+  return recalcRaw(s.components, s.wires, s.voltage, s.wireEnabled);
 }
 
 function recalcRaw(
   components: FreeComponent[],
   wires: FreeWire[],
   voltage: number,
+  wireEnabled = false,
 ): Partial<FreeModeStore> {
-  const result = solveFreeCircuit(components, wires, voltage);
-  const validation = validateCircuit(components, wires, result, voltage);
+  const result = solveFreeCircuit(components, wires, voltage, wireEnabled);
+
+  // Blow fuses that exceeded their rating
+  let updatedComponents = components;
+  if (result.blownFuses.length > 0) {
+    updatedComponents = components.map((c) =>
+      result.blownFuses.includes(c.id) ? { ...c, blown: true } : c,
+    );
+    // Re-solve with blown fuses
+    const blownResult = solveFreeCircuit(updatedComponents, wires, voltage, wireEnabled);
+    if (blownResult.success) {
+      const blownValidation = validateCircuit(updatedComponents, wires, blownResult, voltage);
+      return {
+        components: updatedComponents,
+        calculatedValues: blownResult.values,
+        totalResistance: blownResult.totalResistance,
+        totalCurrent: blownResult.totalCurrent,
+        wireResistances: blownResult.wireResistances,
+        totalWireResistance: blownResult.totalWireResistance,
+        terminalPolarities: blownResult.polarities,
+        solverErrorKey: null,
+        validationIssues: blownValidation.issues,
+        errorIds: [...blownValidation.errorIds],
+      };
+    }
+  }
+
+  const validation = validateCircuit(updatedComponents, wires, result, voltage);
 
   if (!result.success) {
     return {
@@ -539,7 +592,7 @@ export function computeTerminalPos(
 
   const r = ((comp.rotation || 0) % 360 + 360) % 360;
   const cx = comp.x, cy = comp.y;
-  const half = comp.componentType === 'switch' ? 28 : 40;
+  const half = comp.componentType === 'switch' ? 40 : 40;
   const sign = index === 0 ? -1 : 1;
   if (r === 0)   return { x: cx + sign * half, y: cy };
   if (r === 90)  return { x: cx, y: cy + sign * half };

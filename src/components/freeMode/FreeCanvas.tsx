@@ -412,6 +412,9 @@ export function FreeCanvas() {
         </span>
         {activeTool === 'wire' && <span className="text-[10px] text-[#8b83a8]">— {t('freeMode.clickTerminal')}</span>}
         {activeTool.startsWith('place-') && <span className="text-[10px] text-[#8b83a8]">— {t('freeMode.clickToPlace')}</span>}
+        {components.filter(c => c.componentType === 'generator').length > 1 && (
+          <span className="text-[10px] text-purple-400 font-bold ml-2">MNA</span>
+        )}
         <span className="text-[10px] text-[#4a4560] ml-auto">{t('freeMode.pressEsc')}</span>
       </div>
 

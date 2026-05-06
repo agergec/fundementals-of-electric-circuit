@@ -4,6 +4,7 @@ export const MIN_VOLTAGE = 0;
 export const DEFAULT_VOLTAGE = 12;
 
 export const RESISTANCE_OPTIONS = [
+  { label: 'R/4', multiplier: 0.25 },
   { label: 'R/3', multiplier: 1 / 3 },
   { label: 'R/2', multiplier: 0.5 },
   { label: 'R', multiplier: 1 },

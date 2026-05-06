@@ -68,6 +68,12 @@ export function solveMNA(
     if (b > 0) { G[b][b] += gw; G[b][a] -= gw; }
   }
 
+  // Gmin: tiny conductance from each non-ground node to ground (prevents singular matrix)
+  const Gmin = 1e-9;
+  for (let i = 1; i < N; i++) {
+    G[i][i] += Gmin;
+  }
+
   // 3. MNA voltage source stamps — one extra row/col per source
   const numSources = generators.length;
   const totalN = N + numSources;
@@ -77,13 +83,15 @@ export function solveMNA(
   for (let s = 0; s < numSources; s++) {
     const row = new Array(totalN).fill(0);
     const gen = generators[s];
+    const genComp = components.find(c => c.id === gen.id);
+    const genVoltage = genComp?.voltage ?? voltage;
     const posNode = nodeToIdx.get(gen.pos)!;
     const negNode = nodeToIdx.get(gen.neg)!;
     row[posNode] = 1;
     row[negNode] = -1;
     row[N + s] = 0;
     G.push(row);
-    I.push(voltage);
+    I.push(genVoltage);
     // Stamp source current into KCL of pos/neg nodes
     if (posNode > 0) G[posNode][N + s] = 1;
     if (negNode > 0) G[negNode][N + s] = -1;
@@ -95,8 +103,17 @@ export function solveMNA(
 
   // 5. Node voltages: x[0..N-1], source currents: x[N..]
   const nodeVoltages = x.slice(0, N);
-  const totalCurrent = Math.abs(x.slice(N).reduce((a: number, b: number) => a + Math.abs(b), 0));
-  const totalResistance = totalCurrent > 0 ? (voltage * numSources) / totalCurrent : Infinity;
+  const sourceCurrents = x.slice(N).map((c: number) => Math.abs(c));
+  // Use max for series (same current through all sources), sum works for parallel
+  // Heuristic: if all within 5% of max → series → use max, else parallel → sum
+  const maxSrc = Math.max(...sourceCurrents, 0);
+  const allClose = sourceCurrents.every((c: number) => Math.abs(c - maxSrc) < maxSrc * 0.05 || c < 1e-9);
+  const totalCurrent = allClose ? maxSrc : sourceCurrents.reduce((a: number, b: number) => a + b, 0);
+  // Use the first generator's voltage as reference for R calculation
+  const refVoltage = generators.length > 0
+    ? (components.find(c => c.id === generators[0].id)?.voltage ?? voltage)
+    : voltage;
+  const totalResistance = totalCurrent > 1e-12 ? refVoltage / totalCurrent : Infinity;
 
   // 6. Compute component voltages and currents
   const values: Record<string, CalculatedValues> = {};
@@ -114,8 +131,10 @@ export function solveMNA(
 
     values[comp.id] = {
       voltage: vDrop,
-      current: r > 0 && isFinite(r) ? vDrop / r : 0,
-      resistance: r,
+      // For 0Ω: current = voltage drop * large conductance (1e9 * 0 = 0, or 1e9 * tiny = correct)
+      // For ∞Ω: current = 0
+      current: r <= 0 ? vDrop * 1e9 : (!isFinite(r) ? 0 : vDrop / r),
+      resistance: r <= 0 ? 0 : r,
     };
   }
 
@@ -124,7 +143,8 @@ export function solveMNA(
 
 function computeConductance(comp: FreeComponent): number {
   const r = componentResistance(comp);
-  if (r <= 0 || !isFinite(r)) return Infinity; // short → very high conductance
+  if (r <= 0) return 1e9; // short → very high conductance (finite, so not skipped)
+  if (!isFinite(r)) return 0; // open → zero conductance
   return 1 / r;
 }
 

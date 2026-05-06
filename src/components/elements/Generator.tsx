@@ -1,6 +1,6 @@
-interface GeneratorProps { x: number; y: number; voltage: number; rotation?: number; isSelected?: boolean; }
+interface GeneratorProps { x: number; y: number; voltage?: number; rotation?: number; isSelected?: boolean; }
 
-export function Generator({ x, y, voltage, rotation, isSelected }: GeneratorProps) {
+export function Generator({ x, y, voltage = 12, rotation, isSelected }: GeneratorProps) {
   const r = rotation || 0;
   const textTransform = r ? `rotate(${-r} ${x} ${y})` : undefined;
   const borderColor = isSelected ? '#22c55e' : '#4a4560';

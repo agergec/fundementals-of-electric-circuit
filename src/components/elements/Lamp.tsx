@@ -14,11 +14,10 @@ export function Lamp({ x, y, values, multiplier, isSelected, onClick, isFlowing,
   const rot = rotation || 0;
   const textTransform = rot ? `rotate(${-rot} ${x} ${y})` : undefined;
   const rLabel = multiplier === 1 ? 'R' : multiplier < 1 ? `R/${Math.round(1 / multiplier)}` : `${multiplier}R`;
-  const rLabelX = x - (rLabel.length > 2 ? 34 : 30);
 
   return (
     <g onClick={onClick} style={{ cursor: 'pointer' }}>
-      <rect x={x - 29} y={y - 29} width={58} height={58} rx={5} fill="none" stroke={isSelected ? '#22c55e' : '#4a4560'} strokeWidth={1} />
+      <rect x={x - 32} y={y - 32} width={64} height={64} rx={5} fill="none" stroke={isSelected ? '#22c55e' : '#4a4560'} strokeWidth={1} />
       {hasFlow && <circle cx={x} cy={y} r={glowRadius} fill={`rgba(255, 220, 80, ${glowOpacity})`} filter="url(#lampGlow)" />}
       <circle cx={x} cy={y} r={16} fill={fillColor} stroke={isSelected ? '#f59e0b' : '#8b83a8'} strokeWidth={isSelected ? 3 : 2} />
       <line x1={x - 6} y1={y - 6} x2={x + 6} y2={y + 6} stroke={filamentColor} strokeWidth={2} />
@@ -26,7 +25,7 @@ export function Lamp({ x, y, values, multiplier, isSelected, onClick, isFlowing,
       <line x1={x - 43} y1={y} x2={x - 28} y2={y} stroke="#6b6580" strokeWidth={1.5} />
       <line x1={x + 28} y1={y} x2={x + 43} y2={y} stroke="#6b6580" strokeWidth={1.5} />
       <g transform={textTransform}>
-        <text x={rLabelX} y={y + 22} fill="#22c55e" fontSize={8} fontWeight="bold">{rLabel}</text>
+        <text x={x - 28} y={y + 28} fill="#22c55e" fontSize={8} fontWeight="bold">{rLabel}</text>
         {values && (<>
           <text x={x - 22} y={y + 38} textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight="bold">{formatVoltage(values.voltage)}</text>
           <text x={x + 22} y={y + 38} textAnchor="middle" fill="#fbbf24" fontSize={9} fontWeight="bold">{formatCurrent(values.current)}</text>

@@ -54,10 +54,13 @@
     "remove": "Remove",
     "rotate": "Rotate",
     "rotateText": "Rotate text with component",
+    "fuseRating": "Fuse Rating",
+    "resetFuse": "Reset Fuse",
     "removeWire": "Remove Wire",
     "wire": "Wire",
     "lamp": "Lamp",
     "amperemeter": "Amperemeter",
+    "ammeter": "Amperemeter",
     "voltmeter": "Voltmeter",
     "switch": "Switch",
     "generator": "Generator",
@@ -84,7 +87,9 @@
     "wireInfoLength": "Estimated length",
     "wireInfoR": "Wire resistance",
     "wireInfoVoltageDrop": "Voltage drop",
-    "wireInfoExplain": "In a real circuit, wires have resistance that depends on material, length, and diameter. Longer or thinner wires have higher resistance — reducing the voltage available to the components."
+    "wireInfoExplain": "In a real circuit, wires have resistance that depends on material, length, and diameter. Longer or thinner wires have higher resistance — reducing the voltage available to the components.",
+    "fuseBlown": "Fuse Blown!",
+    "fuseBlownDetail": "The fuse has blown because the current exceeded its rating. It is now an open circuit. Click Reset Fuse to restore it."
   },
   "freeMode": {
     "tool": "Tool",

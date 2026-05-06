@@ -148,6 +148,55 @@ describe('solveFreeCircuit', () => {
     expect(result.errorKey).toBe('freeMode.noGenerator');
   });
 
+  // ── MNA-specific edge cases ──
+
+  it('solves two generators in parallel with lamp', () => {
+    const g1 = fc('g1', 'generator', 80, 200);
+    const g2 = fc('g2', 'generator', 80, 280);
+    const lamp = fc('l1', 'lamp', 240, 240);
+    const wires = [
+      wire('g1:1', 'l1:0'), wire('l1:1', 'g1:0'),
+      wire('g2:1', 'l1:0'), wire('l1:1', 'g2:0'),
+    ];
+    const result = solveFreeCircuit([g1, g2, lamp], wires, 12);
+    expect(result.success).toBe(true);
+    expect(result.totalResistance).toBeCloseTo(10, 0);
+    expect(result.values['l1'].voltage).toBeCloseTo(12, 0);
+  });
+
+  it('solves three generators in series with lamp', () => {
+    const g1 = fc('g1', 'generator', 80, 200);
+    const g2 = fc('g2', 'generator', 160, 200);
+    const g3 = fc('g3', 'generator', 240, 200);
+    const lamp = fc('l1', 'lamp', 320, 200);
+    // g3:1 → l1:0, l1:1 → g1:0, then g1:1 → g2:0, g2:1 → g3:0 closes the loop
+    const wires = [
+      wire('g3:1', 'l1:0'), wire('l1:1', 'g1:0'),
+      wire('g1:1', 'g2:0'), wire('g2:1', 'g3:0'),
+    ];
+    const result = solveFreeCircuit([g1, g2, g3, lamp], wires, 12);
+    expect(result.success).toBe(true);
+    // Three 12V in series = 36V across 10Ω → 3.6A
+    expect(result.totalCurrent).toBeCloseTo(3.6, 0);
+  });
+
+  it('solves circuit with ammeter in series via MNA', () => {
+    const gen = fc('gen', 'generator', 80, 200);
+    const lamp = fc('l1', 'lamp', 240, 200);
+    const am = fc('am', 'ammeter', 400, 200);
+    const vm = fc('vm', 'voltmeter', 240, 120);
+    // gen:1 → l1:0, l1:1 → am:0, am:1 → gen:0, vm across l1
+    const wires = [
+      wire('gen:1', 'vm:0'), wire('vm:0', 'l1:0'),
+      wire('l1:1', 'am:0'), wire('am:1', 'gen:0'),
+      wire('l1:1', 'vm:1'),
+    ];
+    const result = solveFreeCircuit([gen, lamp, am, vm], wires, 12);
+    expect(result.success).toBe(true);
+    expect(result.values['l1'].current).toBeCloseTo(1.2, 1);
+    expect(result.values['am'].current).toBeCloseTo(1.2, 1);
+  });
+
   it('solves open circuit with MNA fallback', () => {
     const gen = fc('gen', 'generator', 80, 200);
     const lamp = fc('l1', 'lamp', 240, 200);

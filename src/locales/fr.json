@@ -54,10 +54,13 @@
     "remove": "Supprimer",
     "rotate": "Tourner",
     "rotateText": "Tourner le texte",
+    "fuseRating": "Calibre fusible",
+    "resetFuse": "Réarmer",
     "removeWire": "Supprimer le fil",
     "wire": "Fil",
     "lamp": "Lampe",
     "amperemeter": "Ampèremètre",
+    "ammeter": "Ampèremètre",
     "voltmeter": "Voltmètre",
     "switch": "Interrupteur",
     "generator": "Générateur",
@@ -84,7 +87,9 @@
     "wireInfoLength": "Longueur estimée",
     "wireInfoR": "Résistance du fil",
     "wireInfoVoltageDrop": "Chute de tension",
-    "wireInfoExplain": "Dans un circuit réel, les fils ont une résistance qui dépend du matériau, de la longueur et du diamètre. Plus le fil est long ou fin, plus sa résistance est élevée — et plus la tension disponible pour les composants est réduite."
+    "wireInfoExplain": "Dans un circuit réel, les fils ont une résistance qui dépend du matériau, de la longueur et du diamètre. Plus le fil est long ou fin, plus sa résistance est élevée — et plus la tension disponible pour les composants est réduite.",
+    "fuseBlown": "Fusible grillé !",
+    "fuseBlownDetail": "Le fusible a grillé car le courant a dépassé son calibre. Il est maintenant un circuit ouvert. Clique sur Réarmer pour le restaurer."
   },
   "freeMode": {
     "tool": "Outil",

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
 import { useFreeModeStore } from '../../store/freeModeStore';
 import { useModeStore } from '../../store/modeStore';
-import { RESISTANCE_OPTIONS, BASE_RESISTANCE } from '../../utils/constants';
+import { BASE_RESISTANCE, RESISTANCE_OPTIONS } from '../../utils/constants';
 import { formatVoltage, formatCurrent, formatResistance } from '../../utils/formatters';
 import type { CircuitNode, ComponentNode } from '../../engine/types';
 
@@ -81,6 +81,9 @@ function FreeModeInfoPanel() {
     setLampMultiplier,
     rotateComponent,
     setRotateText,
+    setGeneratorVoltage,
+    setFuseRating,
+    resetFuse,
     setWireLineTypeById,
     selectedWireId,
   } = useFreeModeStore();
@@ -155,6 +158,12 @@ function FreeModeInfoPanel() {
       rotation={comp.rotation}
       rotateText={comp.rotateText}
       onToggleRotateText={() => setRotateText(selectedComponentId, !comp.rotateText)}
+      onSetFuseRating={(r) => setFuseRating(selectedComponentId, r)}
+      onResetFuse={() => resetFuse(selectedComponentId)}
+      fuseRating={comp.currentRating}
+      fuseBlown={comp.blown}
+      onSetGeneratorVoltage={comp.componentType === 'generator' ? (v) => setGeneratorVoltage(selectedComponentId, v) : undefined}
+      generatorVoltage={comp.voltage}
     />
   );
 }
@@ -175,6 +184,12 @@ interface InfoPanelContentProps {
   onRotate?: (dir: number) => void;
   rotateText?: boolean;
   onToggleRotateText?: () => void;
+  onSetFuseRating?: (r: number) => void;
+  onResetFuse?: () => void;
+  fuseRating?: number;
+  fuseBlown?: boolean;
+  onSetGeneratorVoltage?: (v: number) => void;
+  generatorVoltage?: number;
 }
 
 function InfoPanelContent({
@@ -189,6 +204,12 @@ function InfoPanelContent({
   onRotate,
   rotateText,
   onToggleRotateText,
+  onSetFuseRating,
+  onResetFuse,
+  fuseRating,
+  fuseBlown,
+  onSetGeneratorVoltage,
+  generatorVoltage,
 }: InfoPanelContentProps) {
   const { t } = useTranslation();
 
@@ -212,6 +233,20 @@ function InfoPanelContent({
         </button>
       </div>
 
+      {/* Generator voltage slider */}
+      {componentType === 'generator' && onSetGeneratorVoltage && (
+        <div className="mb-3">
+          <div className="flex justify-between text-[10px] text-[#6b6580] uppercase mb-1">
+            <span>{t('info.voltage')}</span>
+            <span className="text-amber-400 font-bold">{(generatorVoltage ?? 12).toFixed(1)} V</span>
+          </div>
+          <input type="range" min={0} max={24} step={0.5}
+            value={generatorVoltage ?? 12}
+            onChange={(e) => onSetGeneratorVoltage(Number(e.target.value))}
+            className="w-full accent-amber-400 cursor-pointer" />
+        </div>
+      )}
+
       {/* Values */}
       {values && (
         <div className="grid grid-cols-3 gap-2 mb-3">
@@ -230,29 +265,60 @@ function InfoPanelContent({
         </div>
       )}
 
-      {/* Resistance picker for lamps and resistors */}
-      {(componentType === 'lamp' || componentType === 'resistor') && (
+      {/* Lamp: preset buttons */}
+      {componentType === 'lamp' && (
         <div className="mb-3">
           <div className="text-[10px] text-[#6b6580] uppercase mb-2">{t('info.resistance')}</div>
           <div className="flex flex-wrap gap-1">
             {RESISTANCE_OPTIONS.map((opt) => (
-              <button
-                key={opt.label}
-                onClick={() => onSetResistance(opt.multiplier)}
+              <button key={opt.label} onClick={() => onSetResistance(opt.multiplier)}
                 className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors
-                  ${
-                    resistanceMultiplier === opt.multiplier
-                      ? 'bg-green-600 text-white'
-                      : 'bg-[#1e1b2e] text-[#8b83a8] hover:bg-[#3d3a4e]'
-                  }`}
-              >
+                  ${resistanceMultiplier === opt.multiplier ? 'bg-green-600 text-white' : 'bg-[#1e1b2e] text-[#8b83a8] hover:bg-[#3d3a4e]'}`}>
                 {opt.label}
-                <span className="text-[9px] ml-1 opacity-60">
-                  ({(BASE_RESISTANCE * opt.multiplier).toFixed(1)}Ω)
-                </span>
+                <span className="text-[9px] ml-1 opacity-60">({(BASE_RESISTANCE * opt.multiplier).toFixed(1)}Ω)</span>
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Resistor: slider */}
+      {componentType === 'resistor' && (
+        <div className="mb-3">
+          <div className="flex justify-between text-[10px] text-[#6b6580] uppercase mb-1">
+            <span>{t('info.resistance')}</span>
+            <span className="text-green-400 font-bold">{Math.round(BASE_RESISTANCE * resistanceMultiplier)} Ω</span>
+          </div>
+          <input type="range" min={1} max={50} step={1}
+            value={Math.round(BASE_RESISTANCE * resistanceMultiplier)}
+            onChange={(e) => onSetResistance(Number(e.target.value) / BASE_RESISTANCE)}
+            className="w-full accent-green-400 cursor-pointer" />
+          <div className="flex justify-between text-[10px] text-[#4a4560] mt-0.5">
+            <span>1 Ω</span><span>50 Ω</span>
+          </div>
+        </div>
+      )}
+
+      {/* Fuse controls */}
+      {componentType === 'fuse' && (
+        <div className="mb-3">
+          <div className="text-[10px] text-[#6b6580] uppercase mb-2">{t('info.fuseRating')}</div>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {[0.5, 1, 2, 3, 5].map((r) => (
+              <button key={r} onClick={() => onSetFuseRating?.(r)}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors
+                  ${fuseRating === r ? 'bg-amber-600 text-white' : 'bg-[#1e1b2e] text-[#8b83a8] hover:bg-[#3d3a4e]'}`}>
+                {r}A
+              </button>
+            ))}
+          </div>
+          {fuseBlown && (
+            <button onClick={onResetFuse}
+              className="w-full px-3 py-2 rounded-lg text-sm font-bold transition-colors border
+                         bg-green-900/30 text-green-400 border-green-700 hover:bg-green-900/50">
+              {t('info.resetFuse')}
+            </button>
+          )}
         </div>
       )}
 

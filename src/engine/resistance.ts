@@ -20,7 +20,7 @@ export function calcResistance(node: CircuitNode): number {
         case 'resistor':
           return BASE_RESISTANCE * node.resistanceMultiplier;
         case 'fuse':
-          return 0;
+          return node.blown ? Infinity : 0;
         default:
           return 0;
       }

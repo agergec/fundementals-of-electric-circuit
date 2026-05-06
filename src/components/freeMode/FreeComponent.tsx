@@ -30,7 +30,7 @@ interface FreeComponentProps {
 function terminalOffset(componentType: string, index: 0 | 1, rotation: number): { tx: number; ty: number } {
   if (componentType === 'junction') return { tx: 0, ty: 0 };
   const r = ((rotation % 360) + 360) % 360;
-  const half = componentType === 'switch' ? 28 : COMP_HALF_W;
+  const half = COMP_HALF_W;
   const sign = index === 0 ? -1 : 1;
   if (r === 0)   return { tx: sign * half, ty: 0 };
   if (r === 90)  return { tx: 0, ty: sign * half };
@@ -58,8 +58,8 @@ export const FreeComponent = memo(function FreeComponent({
   const bodyClick = (e: React.MouseEvent) => { e.stopPropagation(); onComponentClick(id, e); };
   const bodyDblClick = (e: React.MouseEvent) => { e.stopPropagation(); onDoubleClick?.(id, e); };
 
-  const dragW = componentType === 'switch' ? 40 : componentType === 'junction' ? 20 : componentType === 'generator' ? 64 : 58;
-  const dragH = componentType === 'switch' ? 44 : componentType === 'junction' ? 20 : componentType === 'generator' ? 64 : 58;
+  const dragW = componentType === 'junction' ? 20 : 64;
+  const dragH = componentType === 'junction' ? 20 : 64;
 
   return (
     <g transform={`translate(${x}, ${y})`} data-comp={id}>
@@ -95,7 +95,7 @@ export const FreeComponent = memo(function FreeComponent({
         onMouseDown={bodyMouseDown} onClick={bodyClick} onDoubleClick={bodyDblClick} />
 
       <g transform={`rotate(${rotation})`} style={{ pointerEvents: 'none' }}>
-        {componentType === 'generator' && <Generator x={0} y={0} voltage={voltage} rotation={elemRotation} isSelected={isSelected} />}
+        {componentType === 'generator' && <Generator x={0} y={0} voltage={component.voltage ?? voltage} rotation={elemRotation} isSelected={isSelected} />}
         {componentType === 'lamp' && <Lamp x={0} y={0} values={values} multiplier={resistanceMultiplier} isSelected={isSelected} onClick={bodyClick} isFlowing={isFlowing} rotation={elemRotation} />}
         {componentType === 'ammeter' && <Amperemeter x={0} y={0} values={values} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
         {componentType === 'voltmeter' && <Voltmeter x={0} y={0} values={values} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
@@ -116,7 +116,7 @@ export const FreeComponent = memo(function FreeComponent({
               fill={p === '+' ? '#ef4444' : '#3b82f6'}
               fontSize={12} fontWeight="bold"
               style={{ pointerEvents: 'none' }}>
-              {p}
+              {p === '+' ? '+' : '−'}
             </text>
           );
         })}

@@ -11,10 +11,10 @@ export function Resistor({ x, y, multiplier, isSelected, onClick, rotation }: Re
       <line x1={x - 43} y1={y} x2={x - 28} y2={y} stroke="#6b6580" strokeWidth={1.5} />
       <line x1={x + 28} y1={y} x2={x + 43} y2={y} stroke="#6b6580" strokeWidth={1.5} />
       {/* Zigzag */}
-      <polyline points={`${x - 20},${y - 10} ${x - 10},${y + 14} ${x},${y - 10} ${x + 10},${y + 14} ${x + 20},${y - 10}`}
+      <polyline points={`${x - 20},${y - 6} ${x - 10},${y + 8} ${x},${y - 6} ${x + 10},${y + 8} ${x + 20},${y - 6}`}
         fill="none" stroke="#a78bfa" strokeWidth={2} strokeLinejoin="round" />
       <g transform={textTransform}>
-        <text x={x} y={y + 38} textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight="bold">{rLabel}</text>
+        <text x={x - 28} y={y + 28} fill="#22c55e" fontSize={8} fontWeight="bold">{rLabel}</text>
       </g>
     </g>
   );

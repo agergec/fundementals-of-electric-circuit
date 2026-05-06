@@ -9,7 +9,7 @@ export function Amperemeter({ x, y, values, isSelected, onClick, rotation }: Amp
 
   return (
     <g onClick={onClick} style={{ cursor: 'pointer' }}>
-      <rect x={x - 29} y={y - 29} width={58} height={58} rx={5} fill="none" stroke={isSelected ? '#22c55e' : '#4a4560'} strokeWidth={1} />
+      <rect x={x - 32} y={y - 32} width={64} height={64} rx={5} fill="none" stroke={isSelected ? '#22c55e' : '#4a4560'} strokeWidth={1} />
       <circle cx={x} cy={y} r={16} fill="#1e293b" stroke={isSelected ? '#f59e0b' : '#ef4444'} strokeWidth={isSelected ? 3 : 2} />
       <line x1={x - 43} y1={y} x2={x - 28} y2={y} stroke="#6b6580" strokeWidth={1.5} />
       <line x1={x + 28} y1={y} x2={x + 43} y2={y} stroke="#6b6580" strokeWidth={1.5} />

@@ -20,8 +20,9 @@ export interface FreeSolveResult {
   /** Per-wire resistances (keyed by wire ID) */
   wireResistances: Record<string, number>;
   totalWireResistance: number;
-  /** terminal ID → '+' or '-' based on connection to generator */
   polarities: Record<string, '+' | '-'>;
+  /** fuse IDs that should be blown */
+  blownFuses: string[];
   errorKey?: string;
 }
 
@@ -38,6 +39,7 @@ export function solveFreeCircuit(
   components: FreeComponent[],
   wires: FreeWire[],
   voltage: number,
+  wireEnabled = false,
 ): FreeSolveResult {
   // ── 1. Build graph ──
   const graph = buildGraph(components, wires);
@@ -84,7 +86,7 @@ export function solveFreeCircuit(
     return {
       success: false, tree: null, values: {}, totalResistance: Infinity,
       totalCurrent: 0, wireResistances: {}, totalWireResistance: 0,
-      polarities, errorKey: 'freeMode.noGenerator',
+      polarities, blownFuses: [], errorKey: 'freeMode.noGenerator',
     };
   }
 
@@ -98,7 +100,7 @@ export function solveFreeCircuit(
     return {
       success: false, tree: null, values: {}, totalResistance: Infinity,
       totalCurrent: 0, wireResistances: {}, totalWireResistance: 0,
-      polarities, errorKey: 'freeMode.openCircuit',
+      polarities, blownFuses: [], errorKey: 'freeMode.openCircuit',
     };
   }
 
@@ -123,7 +125,7 @@ export function solveFreeCircuit(
       totalResistance: Infinity,
       totalCurrent: 0,
       wireResistances: {},
-      totalWireResistance: 0, polarities,
+      totalWireResistance: 0, polarities, blownFuses: [],
       errorKey: 'freeMode.tooComplex',
     };
   }
@@ -132,7 +134,8 @@ export function solveFreeCircuit(
   const wireResistances: Record<string, number> = {};
   let totalWireResistance = 0;
 
-  for (const w of wires) {
+  if (wireEnabled) {
+    for (const w of wires) {
     // Compute wire length from terminal positions
     const fromComp = components.find((c) => {
       const [cid] = w.fromTerminal.split(':');
@@ -163,11 +166,24 @@ export function solveFreeCircuit(
 
     wireResistances[w.id] = resistance;
     totalWireResistance += resistance;
+    }
   }
 
   // Add total wire resistance to total
   const totalR = solverResult.totalResistance + totalWireResistance;
   const totalI = totalR > 0 && isFinite(totalR) ? voltage / totalR : 0;
+
+  // Check fuses: if current > rating, mark blown
+  const blownFuses = new Set<string>();
+  for (const comp of components) {
+    if (comp.componentType !== 'fuse' || comp.blown) continue;
+    const vals = solverResult.values[comp.id];
+    if (!vals) continue;
+    const rating = comp.currentRating ?? 2;
+    if (vals.current > rating) {
+      blownFuses.add(comp.id);
+    }
+  }
 
   return {
     success: true,
@@ -178,6 +194,7 @@ export function solveFreeCircuit(
     wireResistances,
     totalWireResistance,
     polarities,
+    blownFuses: [...blownFuses],
   };
 }
 
@@ -188,7 +205,7 @@ export function computeTerminalPos(
 ): { x: number; y: number } {
   if (comp.componentType === 'junction') return { x: comp.x, y: comp.y };
   const r = ((comp.rotation || 0) % 360 + 360) % 360;
-  const half = comp.componentType === 'switch' ? 28 : 40;
+  const half = comp.componentType === 'switch' ? 40 : 40;
   const sign = index === 0 ? -1 : 1;
   if (r === 0)   return { x: comp.x + sign * half, y: comp.y };
   if (r === 90)  return { x: comp.x, y: comp.y + sign * half };

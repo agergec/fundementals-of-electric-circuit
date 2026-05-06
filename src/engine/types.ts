@@ -6,6 +6,7 @@ export interface ComponentNode {
   componentType: ComponentType;
   resistanceMultiplier: number; // for lamps: 0.5, 1, 2, 3 etc.
   closed?: boolean; // for switches: true = closed (conducting), false = open
+  blown?: boolean; // for fuses
 }
 
 export interface SeriesNode {
@@ -53,10 +54,12 @@ export interface FreeComponent {
   componentType: ComponentType;
   x: number;
   y: number;
-  rotation: number; // 0, 90, 180, 270
+  rotation: number;
   resistanceMultiplier: number;
+  voltage?: number; // for generators
   closed?: boolean; // for switches
   blown?: boolean; // for fuses
+  currentRating?: number; // for fuses, amps
   rotateText?: boolean;
 }
 

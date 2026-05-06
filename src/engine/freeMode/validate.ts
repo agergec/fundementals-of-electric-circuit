@@ -116,5 +116,18 @@ export function validateCircuit(
     });
   }
 
+  // ── Fuse blown ──
+  for (const comp of components) {
+    if (comp.componentType === 'fuse' && comp.blown) {
+      errorIds.add(comp.id);
+      issues.push({
+        level: 'warning',
+        key: 'circuit.fuseBlown',
+        detailKey: 'circuit.fuseBlownDetail',
+        ids: [comp.id],
+      });
+    }
+  }
+
   return { issues, errorIds };
 }
