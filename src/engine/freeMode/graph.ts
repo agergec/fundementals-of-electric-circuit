@@ -53,11 +53,11 @@ export interface ComponentEdge {
 }
 
 export interface GraphResult {
-  /** Maps terminal ID → electrical node ID */
   nodeMap: Map<TerminalId, number>;
-  /** Components as edges between electrical nodes */
   edges: ComponentEdge[];
-  /** The two electrical nodes of the generator */
+  /** All generators in the circuit. pos/neg are electrical node IDs. */
+  generators: { id: string; pos: number; neg: number }[];
+  /** First generator's nodes (for backward compat). Null if no generators. */
   generatorNodes: { pos: number; neg: number } | null;
 }
 
@@ -86,7 +86,7 @@ export function buildGraph(
 
   // Build component edges
   const edges: ComponentEdge[] = [];
-  let generatorNodes: { pos: number; neg: number } | null = null;
+  const generators: { id: string; pos: number; neg: number }[] = [];
 
   for (const comp of components) {
     const nodeA = nodeMap.get(terminalId(comp.id, 0));
@@ -94,14 +94,11 @@ export function buildGraph(
     if (nodeA === undefined || nodeB === undefined) continue;
 
     if (comp.componentType === 'generator') {
-      generatorNodes = { pos: nodeA, neg: nodeB };
+      generators.push({ id: comp.id, pos: nodeA, neg: nodeB });
       continue;
     }
 
-    // Junctions are pass-through connection points, not circuit elements
     if (comp.componentType === 'junction') continue;
-
-    // Skip self-loops (shouldn't happen, but guard)
     if (nodeA === nodeB) continue;
 
     edges.push({
@@ -114,7 +111,9 @@ export function buildGraph(
     });
   }
 
-  return { nodeMap, edges, generatorNodes };
+  const generatorNodes = generators.length > 0 ? generators[0] : null;
+
+  return { nodeMap, edges, generators, generatorNodes };
 }
 
 /** Helper: are two terminals in the same electrical node? */

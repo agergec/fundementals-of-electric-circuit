@@ -14,12 +14,12 @@ export function solveMNA(
   voltage: number,
 ): { values: Record<string, CalculatedValues>; totalResistance: number; totalCurrent: number } | null {
   const graph = buildGraph(components, wires);
-  if (!graph.generatorNodes) return null;
+  if (graph.generators.length === 0) return null;
 
-  const { nodeMap, generatorNodes } = graph;
+  const { nodeMap, generators } = graph;
 
-  // 1. Renumber nodes: 0 = ground (gen neg), 1..N-1 = other nodes
-  const groundNode = generatorNodes.neg;
+  // 1. Renumber nodes: 0 = ground (first generator's neg), 1..N-1 = other nodes
+  const groundNode = generators[0].neg;
   const nodeToIdx = new Map<number, number>();
   let idx = 0;
   nodeToIdx.set(groundNode, idx++); // ground is row 0
@@ -37,31 +37,19 @@ export function solveMNA(
   // Ground node equation: V[0] = 0
   G[0][0] = 1;
 
-  // Add conductances for each component
+  // Add conductances for each component (same as before)
   for (const comp of components) {
     if (comp.componentType === 'generator' || comp.componentType === 'junction') continue;
-
     const nodeA = nodeMap.get(`${comp.id}:0`);
     const nodeB = nodeMap.get(`${comp.id}:1`);
     if (nodeA === undefined || nodeB === undefined) continue;
-    if (nodeA === nodeB) continue; // self-loop
-
+    if (nodeA === nodeB) continue;
     const conductance = computeConductance(comp);
-    if (conductance === 0) continue; // short circuit — skip stamp
-    if (!isFinite(conductance)) continue; // open circuit
-
+    if (conductance === 0 || !isFinite(conductance)) continue;
     const a = nodeToIdx.get(nodeA)!;
     const b = nodeToIdx.get(nodeB)!;
-
-    // Stamp conductance between nodes a and b
-    if (a > 0) {
-      G[a][a] += conductance;
-      G[a][b] -= conductance;
-    }
-    if (b > 0) {
-      G[b][b] += conductance;
-      G[b][a] -= conductance;
-    }
+    if (a > 0) { G[a][a] += conductance; G[a][b] -= conductance; }
+    if (b > 0) { G[b][b] += conductance; G[b][a] -= conductance; }
   }
 
   // Add wire resistances
@@ -71,43 +59,44 @@ export function solveMNA(
     const nodeA = nodeMap.get(`${fcId}:${fcIdx}`);
     const nodeB = nodeMap.get(`${tcId}:${tcIdx}`);
     if (nodeA === undefined || nodeB === undefined || nodeA === nodeB) continue;
-
     const wireR = wireResistance(w, components);
     if (wireR <= 0 || !isFinite(wireR)) continue;
     const gw = 1 / wireR;
-
     const a = nodeToIdx.get(nodeA)!;
     const b = nodeToIdx.get(nodeB)!;
     if (a > 0) { G[a][a] += gw; G[a][b] -= gw; }
     if (b > 0) { G[b][b] += gw; G[b][a] -= gw; }
   }
 
-  // 3. Voltage source stamp: generator between genPos and genNeg
-  const srcNode = nodeToIdx.get(generatorNodes.pos)!;
-
-  // MNA adds an extra variable for the voltage source current
-  // Augment matrix: (N+1) x (N+1)
-  const totalN = N + 1;
+  // 3. MNA voltage source stamps — one extra row/col per source
+  const numSources = generators.length;
+  const totalN = N + numSources;
   for (let i = 0; i < N; i++) {
-    G[i].push(0);
+    while (G[i].length < totalN) G[i].push(0);
   }
-  G.push(new Array(totalN).fill(0));
+  for (let s = 0; s < numSources; s++) {
+    const row = new Array(totalN).fill(0);
+    const gen = generators[s];
+    const posNode = nodeToIdx.get(gen.pos)!;
+    const negNode = nodeToIdx.get(gen.neg)!;
+    row[posNode] = 1;
+    row[negNode] = -1;
+    row[N + s] = 0;
+    G.push(row);
+    I.push(voltage);
+    // Stamp source current into KCL of pos/neg nodes
+    if (posNode > 0) G[posNode][N + s] = 1;
+    if (negNode > 0) G[negNode][N + s] = -1;
+  }
 
-  // Voltage source equation: V[srcNode] - V[ground] = voltage
-  G[srcNode][N] = 1;
-  G[N][srcNode] = 1;
-  G[N][N] = 0;
-  I[N] = voltage;
-
-  // 4. Gaussian elimination with partial pivoting
+  // 4. Gaussian elimination
   const x = gaussianElimination(G, I, totalN);
   if (!x) return null;
 
-  // 5. Node voltages: x[0..N-1], source current: x[N]
+  // 5. Node voltages: x[0..N-1], source currents: x[N..]
   const nodeVoltages = x.slice(0, N);
-  const sourceCurrent = Math.abs(x[N]);
-  const totalResistance = voltage / (sourceCurrent || 1e-12);
-  const totalCurrent = sourceCurrent;
+  const totalCurrent = Math.abs(x.slice(N).reduce((a: number, b: number) => a + Math.abs(b), 0));
+  const totalResistance = totalCurrent > 0 ? (voltage * numSources) / totalCurrent : Infinity;
 
   // 6. Compute component voltages and currents
   const values: Record<string, CalculatedValues> = {};

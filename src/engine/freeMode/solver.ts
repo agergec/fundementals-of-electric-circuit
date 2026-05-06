@@ -44,10 +44,12 @@ export function solveFreeCircuit(
 
   // Build terminal polarities from generator connection
   const polarities: Record<string, '+' | '-'> = {};
-  if (graph.generatorNodes) {
+  if (graph.generators.length > 0) {
     for (const [tid, nodeId] of graph.nodeMap) {
-      if (nodeId === graph.generatorNodes.pos) polarities[tid] = '+';
-      else if (nodeId === graph.generatorNodes.neg) polarities[tid] = '-';
+      for (const gen of graph.generators) {
+        if (nodeId === gen.pos) polarities[tid] = '+';
+        else if (nodeId === gen.neg) polarities[tid] = '-';
+      }
     }
     // Propagate through components: if one terminal has polarity, the other gets opposite
     let changed = true;
@@ -102,17 +104,15 @@ export function solveFreeCircuit(
 
   // ── 2. Try series/parallel reduction, fall back to MNA ──
   const tree = reduceToCircuit(edges, generatorNodes.pos, generatorNodes.neg);
+  const useMNA = !tree || graph.generators.length > 1;
   let solverResult: { values: Record<string, CalculatedValues>; totalResistance: number; totalCurrent: number } | null = null;
 
-  if (tree) {
-    const r = solveCircuit(tree, voltage);
-    solverResult = { values: r.values, totalResistance: r.totalResistance, totalCurrent: r.totalCurrent };
-  } else {
-    // Fall back to MNA for non-series-parallel circuits
+  if (useMNA) {
     const mnaResult = solveMNA(components, wires, voltage);
-    if (mnaResult) {
-      solverResult = mnaResult;
-    }
+    if (mnaResult) solverResult = mnaResult;
+  } else {
+    const r = solveCircuit(tree!, voltage);
+    solverResult = { values: r.values, totalResistance: r.totalResistance, totalCurrent: r.totalCurrent };
   }
 
   if (!solverResult) {

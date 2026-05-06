@@ -31,7 +31,7 @@ export function validateCircuit(
   // Build electrical graph
   const graph = buildGraph(components, wires);
 
-  if (!graph.generatorNodes) {
+  if (graph.generators.length === 0) {
     return { issues, errorIds };
   }
 
