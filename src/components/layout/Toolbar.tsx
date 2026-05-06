@@ -165,6 +165,8 @@ function FreeModeToolbar() {
     setWireLineType,
     breadboard,
     toggleBreadboard,
+    realisticView,
+    toggleRealisticView,
   } = useFreeModeStore();
   const { active: challengeActive, newChallenge, setActive: setChallengeActive } = useChallengeStore();
 
@@ -308,6 +310,11 @@ function FreeModeToolbar() {
           className={`py-1.5 rounded text-[10px] font-bold transition-colors border
             ${breadboard ? 'bg-green-700/30 text-green-400 border-green-600' : 'bg-[#1e1b2e] text-[#8b83a8] border-[#4a4560] hover:bg-[#3d3a4e]'}`}>
           {breadboard ? 'Schematic' : 'Breadboard'}
+        </button>
+        <button onClick={toggleRealisticView}
+          className={`py-1.5 rounded text-[10px] font-bold transition-colors border
+            ${realisticView ? 'bg-cyan-700/30 text-cyan-400 border-cyan-600' : 'bg-[#1e1b2e] text-[#8b83a8] border-[#4a4560] hover:bg-[#3d3a4e]'}`}>
+          🔬 Realistic View
         </button>
       </div>
 

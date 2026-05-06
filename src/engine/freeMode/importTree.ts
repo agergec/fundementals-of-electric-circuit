@@ -4,22 +4,15 @@ import type { WireMaterial } from '../../utils/constants';
 const COMP_W = 80;
 const WIRE_Y = 120;
 const GEN_X = 80;
-
-interface ImportResult {
-  components: FreeComponent[];
-  wires: FreeWire[];
-  voltage: number;
-}
-
-let nextId = 1000;
-function genId(prefix: string): string { return `${prefix}-import-${nextId++}`; }
+const SNAP = 40;
+const snap = (v: number) => Math.round(v / SNAP) * SNAP;
 
 /** Helper: minimal wire factory */
 function wire(
   fromId: string, fromIdx: 0 | 1,
   toId: string, toIdx: 0 | 1,
   mat: WireMaterial, diam: number,
-  lt: 'curved' | 'straight' | 'corner' = 'straight',
+  lt: 'curved' | 'straight' | 'corner' = 'corner',
 ): FreeWire {
   return {
     id: genId('wire'),
@@ -31,6 +24,15 @@ function wire(
     waypoints: [],
   };
 }
+
+interface ImportResult {
+  components: FreeComponent[];
+  wires: FreeWire[];
+  voltage: number;
+}
+
+let nextId = 1000;
+function genId(prefix: string): string { return `${prefix}-import-${nextId++}`; }
 
 /**
  * Convert a structured circuit tree to free-mode components and wires.
@@ -69,9 +71,9 @@ export function importFromTree(
 
   const cornerId1 = genId('junction');
   const cornerId2 = genId('junction');
-  const corner1: FreeComponent = { id: cornerId1, componentType: 'junction', x: endX, y: WIRE_Y, rotation: 0, resistanceMultiplier: 1 };
-  const corner2: FreeComponent = { id: cornerId2, componentType: 'junction', x: endX, y: returnY, rotation: 0, resistanceMultiplier: 1 };
-  const corner3: FreeComponent = { id: genId('junction'), componentType: 'junction', x: GEN_X, y: returnY, rotation: 0, resistanceMultiplier: 1 };
+  const corner1: FreeComponent = { id: cornerId1, componentType: 'junction', x: snap(endX), y: snap(WIRE_Y), rotation: 0, resistanceMultiplier: 1 };
+  const corner2: FreeComponent = { id: cornerId2, componentType: 'junction', x: snap(endX), y: snap(returnY), rotation: 0, resistanceMultiplier: 1 };
+  const corner3: FreeComponent = { id: genId('junction'), componentType: 'junction', x: snap(GEN_X), y: snap(returnY), rotation: 0, resistanceMultiplier: 1 };
   components.push(corner1, corner2, corner3);
 
   wires.push(wire(info.lastId, 1, cornerId1, 0, wireMaterial, wireDiameterMm, 'corner'));
@@ -101,8 +103,8 @@ function layoutToFree(
     const comp: FreeComponent = {
       id: node.id,
       componentType: node.componentType,
-      x,
-      y,
+      x: snap(x),
+      y: snap(y),
       rotation: 0,
       resistanceMultiplier: node.resistanceMultiplier,
       closed: node.closed,
@@ -138,8 +140,8 @@ function layoutToFree(
     const forkJunction: FreeComponent = {
       id: genId('junction'),
       componentType: 'junction',
-      x: forkX,
-      y,
+      x: snap(forkX),
+      y: snap(y),
       rotation: 0,
       resistanceMultiplier: 1,
     };
@@ -162,8 +164,8 @@ function layoutToFree(
     const mergeJunction: FreeComponent = {
       id: genId('junction'),
       componentType: 'junction',
-      x: mergeX,
-      y,
+      x: snap(mergeX),
+      y: snap(y),
       rotation: 0,
       resistanceMultiplier: 1,
     };

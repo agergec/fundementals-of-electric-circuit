@@ -125,17 +125,19 @@ export function routeOrthogonal(
  * with arc-rounded corners at every interior bend.
  */
 export function buildRoundedPath(points: Point[], radius: number = 6): string {
-  if (points.length < 2) return '';
-  if (points.length === 2) {
-    return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+  // Filter out any NaN/Infinity coordinates
+  const clean = points.filter(p => isFinite(p.x) && isFinite(p.y));
+  if (clean.length < 2) return '';
+  if (clean.length === 2) {
+    return `M ${clean[0].x} ${clean[0].y} L ${clean[1].x} ${clean[1].y}`;
   }
 
-  let d = `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${clean[0].x} ${clean[0].y}`;
 
-  for (let i = 1; i < points.length - 1; i++) {
-    const prev = points[i - 1];
-    const curr = points[i];
-    const next = points[i + 1];
+  for (let i = 1; i < clean.length - 1; i++) {
+    const prev = clean[i - 1];
+    const curr = clean[i];
+    const next = clean[i + 1];
 
     const inDx = curr.x - prev.x;
     const inDy = curr.y - prev.y;
@@ -154,7 +156,8 @@ export function buildRoundedPath(points: Point[], radius: number = 6): string {
     const startX = curr.x + (outDx / outLen) * r;
     const startY = curr.y + (outDy / outLen) * r;
 
-    // Cross product determines turn direction; arc should curve around the outside
+    if (!isFinite(stopX) || !isFinite(startX)) continue;
+
     const cross = inDx * outDy - inDy * outDx;
     const sweep = cross > 0 ? 1 : 0;
 
@@ -162,7 +165,7 @@ export function buildRoundedPath(points: Point[], radius: number = 6): string {
     d += ` A ${r} ${r} 0 0 ${sweep} ${startX} ${startY}`;
   }
 
-  d += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
+  d += ` L ${clean[clean.length - 1].x} ${clean[clean.length - 1].y}`;
   return d;
 }
 

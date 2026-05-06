@@ -103,16 +103,22 @@ export const FreeWire = memo(function FreeWire({
   let pathD: string;
   let points: Point[];
 
-  if (lineType === 'curved') {
-    pathD = buildCurvedPath(fromPos.x, fromPos.y, toPos.x, toPos.y);
-    points = [fromPos, toPos];
-  } else if (lineType === 'straight') {
+  try {
+    if (lineType === 'curved') {
+      pathD = buildCurvedPath(fromPos.x, fromPos.y, toPos.x, toPos.y);
+      points = [fromPos, toPos];
+    } else if (lineType === 'straight') {
+      pathD = `M ${fromPos.x} ${fromPos.y} L ${toPos.x} ${toPos.y}`;
+      points = [fromPos, toPos];
+    } else {
+      // Corner: use orthogonal router
+      points = buildPointList(fromPos, dir1, toPos, dir2, waypoints);
+      pathD = buildRoundedPath(points);
+    }
+  } catch {
+    // Fallback to straight line
     pathD = `M ${fromPos.x} ${fromPos.y} L ${toPos.x} ${toPos.y}`;
     points = [fromPos, toPos];
-  } else {
-    // Corner: use orthogonal router
-    points = buildPointList(fromPos, dir1, toPos, dir2, waypoints);
-    pathD = buildRoundedPath(points);
   }
 
   const isFlowing = current > 0.0001;

@@ -111,5 +111,96 @@
     "placeFuse": "Fuse",
     "placeJunction": "Junction",
     "tooComplex": "This circuit is too complex for automatic analysis. Try simplifying your connections."
+  },
+  "help": {
+    "title": "CircuitLab Help",
+    "sections": [
+      {
+        "title": "Getting Started",
+        "icon": "🚀",
+        "items": [
+          "Click a component chip in the left toolbar, then click on the canvas to place it.",
+          "You can also drag components from the toolbar directly onto the canvas.",
+          "Select the Wire tool, then click two terminal dots to connect components.",
+          "Use the Select tool to click components or wires — the info panel shows properties."
+        ]
+      },
+      {
+        "title": "Tools",
+        "icon": "🔧",
+        "items": [
+          "Select — Click components/wires to inspect. Drag to move.",
+          "Wire — Click one terminal dot, then another, to connect them."
+        ]
+      },
+      {
+        "title": "Components",
+        "icon": "🧩",
+        "items": [
+          "Generator (G) — Voltage source. Adjust voltage in toolbar or by selecting it.",
+          "Lamp — Light bulb with configurable resistance (R/4 to 4R).",
+          "Switch — Toggle ON/OFF by double-clicking.",
+          "Ammeter (A) — Measures current. Place in SERIES (near-zero resistance).",
+          "Voltmeter (V) — Measures voltage. Place in PARALLEL (near-infinite resistance).",
+          "Resistor (Ω) — Adjustable 1–50Ω via slider.",
+          "Fuse (~) — Blows when current exceeds rating. Can be reset.",
+          "Junction (●) — Connection point for branching wires."
+        ]
+      },
+      {
+        "title": "Wire Types",
+        "icon": "〰",
+        "items": [
+          "Straight — Direct line between terminals.",
+          "Curved — Smooth bezier curve.",
+          "Corner — Orthogonal 90° routing. Drag purple handles to adjust."
+        ]
+      },
+      {
+        "title": "Editing Wires",
+        "icon": "✏",
+        "items": [
+          "Green handles — Drag to detach and reattach wire to a different terminal.",
+          "Purple handles — Drag to adjust corner path (corner mode).",
+          "Change wire material, diameter, and style per wire in the info panel."
+        ]
+      },
+      {
+        "title": "Wire Resistance",
+        "icon": "⚡",
+        "items": [
+          "Wires glow with heat: blue (cold) → amber (warm) → red (hot, 3A+).",
+          "Enable Wire Resistance in toolbar to simulate real wire properties.",
+          "Set material (silver/copper/steel/nichrome) and diameter globally or per wire."
+        ]
+      },
+      {
+        "title": "Challenge Mode",
+        "icon": "🎯",
+        "items": [
+          "Click Challenge to get a random target resistance to build.",
+          "Click Check to see your score. ≤2% error = 3★, ≤5% = 2★, ≤10% = 1★."
+        ]
+      },
+      {
+        "title": "Keyboard Shortcuts",
+        "icon": "⌨",
+        "items": [
+          "Delete/Backspace — Remove selected component or wire.",
+          "Ctrl+Z — Undo.  Ctrl+Shift+Z — Redo.",
+          "Esc — Cancel wire drawing / deselect.",
+          "Scroll — Zoom in/out.  Drag background — Pan."
+        ]
+      },
+      {
+        "title": "Save & Export",
+        "icon": "💾",
+        "items": [
+          "Save — Saves circuit to browser storage (persists across sessions).",
+          "Load — Restores last saved circuit.",
+          "📷 — Export circuit as PNG image (bottom-right corner)."
+        ]
+      }
+    ]
   }
 }

@@ -63,6 +63,8 @@ interface FreeModeStore {
   wireLineType: 'curved' | 'straight' | 'corner';
   breadboard: boolean;
   toggleBreadboard: () => void;
+  realisticView: boolean;
+  toggleRealisticView: () => void;
   calculatedValues: Record<string, CalculatedValues>;
   totalResistance: number;
   totalCurrent: number;
@@ -133,6 +135,8 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
   wireLineType: 'straight',
   breadboard: false,
   toggleBreadboard: () => set((s) => ({ breadboard: !s.breadboard })),
+  realisticView: false,
+  toggleRealisticView: () => set((s) => ({ realisticView: !s.realisticView })),
   calculatedValues: {},
   totalResistance: Infinity,
   totalCurrent: 0,
@@ -550,7 +554,12 @@ function recalcRaw(
   voltage: number,
   wireEnabled = false,
 ): Partial<FreeModeStore> {
-  const result = solveFreeCircuit(components, wires, voltage, wireEnabled);
+  let result: ReturnType<typeof solveFreeCircuit>;
+  try {
+    result = solveFreeCircuit(components, wires, voltage, wireEnabled);
+  } catch {
+    return { solverErrorKey: 'freeMode.tooComplex' };
+  }
 
   // Blow fuses that exceeded their rating
   let updatedComponents = components;

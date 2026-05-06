@@ -25,6 +25,7 @@ interface FreeComponentProps {
   highlightTerminal?: 0 | 1 | null;
   polarities?: Record<string, '+' | '-'>;
   hasError?: boolean;
+  realisticView?: boolean;
 }
 
 function terminalOffset(componentType: string, index: 0 | 1, rotation: number): { tx: number; ty: number } {
@@ -41,7 +42,7 @@ function terminalOffset(componentType: string, index: 0 | 1, rotation: number): 
 export const FreeComponent = memo(function FreeComponent({
   component, values, isSelected, isFlowing, isWiring, voltage,
   onComponentClick, onComponentMouseDown, onTerminalClick, onTerminalMouseDown,
-  onDoubleClick, highlightTerminal, polarities, hasError,
+  onDoubleClick, highlightTerminal, polarities, hasError, realisticView,
 }: FreeComponentProps) {
   const { id, componentType, x, y, rotation, resistanceMultiplier, closed, rotateText } = component;
   const isJunction = componentType === 'junction';
@@ -95,8 +96,8 @@ export const FreeComponent = memo(function FreeComponent({
         onMouseDown={bodyMouseDown} onClick={bodyClick} onDoubleClick={bodyDblClick} />
 
       <g transform={`rotate(${rotation})`} style={{ pointerEvents: 'none' }}>
-        {componentType === 'generator' && <Generator x={0} y={0} voltage={component.voltage ?? voltage} rotation={elemRotation} isSelected={isSelected} />}
-        {componentType === 'lamp' && <Lamp x={0} y={0} values={values} multiplier={resistanceMultiplier} isSelected={isSelected} onClick={bodyClick} isFlowing={isFlowing} rotation={elemRotation} />}
+        {componentType === 'generator' && <Generator x={0} y={0} voltage={component.voltage ?? voltage} rotation={elemRotation} isSelected={isSelected} realistic={realisticView} />}
+        {componentType === 'lamp' && <Lamp x={0} y={0} values={values} multiplier={resistanceMultiplier} isSelected={isSelected} onClick={bodyClick} isFlowing={isFlowing} rotation={elemRotation} realistic={realisticView} />}
         {componentType === 'ammeter' && <Amperemeter x={0} y={0} values={values} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
         {componentType === 'voltmeter' && <Voltmeter x={0} y={0} values={values} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
         {componentType === 'switch' && <Switch x={0} y={0} closed={!!closed} isSelected={isSelected} onClick={bodyClick} onDoubleClick={bodyDblClick} rotation={elemRotation} />}

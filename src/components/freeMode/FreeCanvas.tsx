@@ -6,12 +6,72 @@ import { FreeWire } from './FreeWire';
 import { WireDrawingLayer } from './WireDrawingLayer';
 import { BreadboardGrid } from './BreadboardGrid';
 import { ChallengePanel } from './ChallengePanel';
+import { HelpModal } from './HelpModal';
 import { PIXEL_TO_METERS } from '../../utils/constants';
 import type { FreeComponent as FreeComponentT } from '../../engine/types';
 
 const SNAP = 40;
 
+/** Inline all computed CSS styles recursively so the SVG can be rendered to a canvas */
+function inlineStyles(source: Element, target: Element) {
+  const computed = getComputedStyle(source);
+  const style = (target as HTMLElement).style;
+  // Copy visual properties that matter for rendering
+  for (const prop of ['fill', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-linecap',
+    'opacity', 'font-size', 'font-family', 'font-weight', 'text-anchor', 'dominant-baseline']) {
+    const val = computed.getPropertyValue(prop);
+    if (val && val !== 'auto' && val !== 'normal') style.setProperty(prop, val);
+  }
+  for (let i = 0; i < source.children.length; i++) {
+    inlineStyles(source.children[i], target.children[i]);
+  }
+}
 
+async function exportPng(svgEl: SVGSVGElement | null) {
+  if (!svgEl) return;
+  const rect = svgEl.getBoundingClientRect();
+  const w = rect.width || 800;
+  const h = rect.height || 600;
+
+  // Clone and inline styles
+  const clone = svgEl.cloneNode(true) as SVGSVGElement;
+  inlineStyles(svgEl, clone);
+  clone.setAttribute('width', String(w));
+  clone.setAttribute('height', String(h));
+  clone.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+  // Add a background rect
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('width', String(w));
+  bg.setAttribute('height', String(h));
+  bg.setAttribute('fill', '#1e1b2e');
+  clone.insertBefore(bg, clone.firstChild);
+
+  const data = new XMLSerializer().serializeToString(clone);
+  const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const scale = 2;
+    canvas.width = w * scale;
+    canvas.height = h * scale;
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(scale, scale);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'circuit.png';
+      a.click();
+    }, 'image/png');
+  };
+  img.src = url;
+}
 
 function snap(v: number): number {
   return Math.round(v / SNAP) * SNAP;
@@ -91,10 +151,12 @@ export function FreeCanvas() {
     redo,
     pushHistory,
     breadboard,
+    realisticView,
   } = useFreeModeStore();
 
   const isFlowing = totalCurrent > 0.0001;
   const isWiring = !!pendingWire;
+  const [showHelp, setShowHelp] = useState(false);
 
   // ── Pan / Zoom ──
   const svgRef = useRef<SVGSVGElement>(null);
@@ -399,6 +461,7 @@ export function FreeCanvas() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <ChallengePanel />
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
       {/* Tool indicator */}
       <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 bg-[#2d2a3e] border-b border-[#4a4560]">
@@ -552,6 +615,7 @@ export function FreeCanvas() {
                 onDoubleClick={handleComponentDoubleClick}
                 polarities={terminalPolarities}
                 hasError={errorIds.includes(comp.id)}
+                realisticView={realisticView}
                 highlightTerminal={getHighlightFor(comp.id)}
               />
             ))}
@@ -607,7 +671,7 @@ export function FreeCanvas() {
           </g>
         </svg>
 
-        {/* Zoom controls */}
+        {/* Zoom & export controls */}
         <div className="absolute bottom-3 right-3 flex flex-col gap-1">
           <button onClick={() => setView(v => ({ ...v, scale: Math.min(5, v.scale * 1.2) }))}
             className="w-8 h-8 rounded-lg bg-[#2d2a3e] border border-[#4a4560] text-[#8b83a8]
@@ -619,6 +683,14 @@ export function FreeCanvas() {
             className="w-8 h-8 rounded-lg bg-[#2d2a3e] border border-[#4a4560] text-[#8b83a8]
                        hover:text-white hover:border-[#6b6580] transition-colors text-xs font-bold flex items-center justify-center"
             title="Fit to view">⊡</button>
+          <button onClick={() => exportPng(svgRef.current)}
+            className="w-8 h-8 rounded-lg bg-[#2d2a3e] border border-[#4a4560] text-[#8b83a8]
+                       hover:text-white hover:border-[#6b6580] transition-colors text-[10px] font-bold flex items-center justify-center"
+            title="Export as PNG">📷</button>
+          <button onClick={() => setShowHelp(true)}
+            className="w-8 h-8 rounded-lg bg-[#2d2a3e] border border-[#4a4560] text-[#8b83a8]
+                       hover:text-white hover:border-[#6b6580] transition-colors text-xs font-bold flex items-center justify-center"
+            title="Help">?</button>
         </div>
 
         <div className="absolute bottom-3 left-3 text-[10px] text-[#4a4560] select-none">

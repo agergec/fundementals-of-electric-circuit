@@ -11,6 +11,7 @@ i18n.use(initReactI18next).init({
   lng: 'fr',
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
+  returnObjects: true,
 });
 
 export default i18n;

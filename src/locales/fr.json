@@ -111,5 +111,96 @@
     "placeFuse": "Fusible",
     "placeJunction": "Jonction",
     "tooComplex": "Ce circuit est trop complexe pour l'analyse automatique. Essaie de simplifier tes connexions."
+  },
+  "help": {
+    "title": "Aide CircuitLab",
+    "sections": [
+      {
+        "title": "Pour commencer",
+        "icon": "🚀",
+        "items": [
+          "Clique sur un composant dans la barre d'outils, puis clique sur le canevas pour le placer.",
+          "Tu peux aussi glisser-déposer les composants depuis la barre d'outils.",
+          "Sélectionne l'outil Fil, puis clique sur deux bornes pour connecter des composants.",
+          "Utilise l'outil Sélection pour cliquer sur les composants ou les fils — le panneau d'info s'affiche."
+        ]
+      },
+      {
+        "title": "Outils",
+        "icon": "🔧",
+        "items": [
+          "Sélection — Clique sur les composants/fils pour les inspecter. Glisse pour déplacer.",
+          "Fil — Clique sur une borne, puis une autre, pour les connecter."
+        ]
+      },
+      {
+        "title": "Composants",
+        "icon": "🧩",
+        "items": [
+          "Générateur (G) — Source de tension. Règle la tension dans la barre d'outils ou en le sélectionnant.",
+          "Lampe — Ampoule avec résistance réglable (R/4 à 4R).",
+          "Interrupteur — Active/Désactive par double-clic.",
+          "Ampèremètre (A) — Mesure le courant. À placer en SÉRIE (résistance quasi nulle).",
+          "Voltmètre (V) — Mesure la tension. À placer en PARALLÈLE (résistance quasi infinie).",
+          "Résistance (Ω) — Réglable de 1 à 50Ω via le curseur.",
+          "Fusible (~) — Fond quand le courant dépasse son calibre. Peut être réarmé.",
+          "Jonction (●) — Point de connexion pour dériver les fils."
+        ]
+      },
+      {
+        "title": "Types de fils",
+        "icon": "〰",
+        "items": [
+          "Droit — Ligne directe entre les bornes.",
+          "Courbé — Courbe de Bézier lisse.",
+          "Angle — Routage orthogonal à 90°. Glisse les poignées violettes pour ajuster."
+        ]
+      },
+      {
+        "title": "Édition des fils",
+        "icon": "✏",
+        "items": [
+          "Poignées vertes — Glisse pour détacher et rattacher le fil à une autre borne.",
+          "Poignées violettes — Glisse pour ajuster le chemin en mode angle.",
+          "Change le matériau, le diamètre et le style du fil dans le panneau d'info."
+        ]
+      },
+      {
+        "title": "Résistance des fils",
+        "icon": "⚡",
+        "items": [
+          "Les fils chauffent : bleu (froid) → ambre (tiède) → rouge (chaud, 3A+).",
+          "Active Résistance des fils dans la barre d'outils pour simuler les propriétés réelles.",
+          "Définis le matériau (argent/cuivre/acier/nichrome) et le diamètre globalement ou par fil."
+        ]
+      },
+      {
+        "title": "Mode Défi",
+        "icon": "🎯",
+        "items": [
+          "Clique sur Défi pour obtenir une résistance cible aléatoire à construire.",
+          "Clique sur Vérifier pour voir ton score. ≤2% d'erreur = 3★, ≤5% = 2★, ≤10% = 1★."
+        ]
+      },
+      {
+        "title": "Raccourcis clavier",
+        "icon": "⌨",
+        "items": [
+          "Suppr/Backspace — Supprimer le composant ou fil sélectionné.",
+          "Ctrl+Z — Annuler.  Ctrl+Shift+Z — Rétablir.",
+          "Échap — Annuler le tracé du fil / désélectionner.",
+          "Molette — Zoom avant/arrière.  Glisser le fond — Panoramique."
+        ]
+      },
+      {
+        "title": "Sauvegarde & Export",
+        "icon": "💾",
+        "items": [
+          "Sauver — Enregistre le circuit dans le navigateur (persiste entre les sessions).",
+          "Charger — Restaure le dernier circuit sauvegardé.",
+          "📷 — Exporte le circuit en image PNG (coin inférieur droit)."
+        ]
+      }
+    ]
   }
 }
