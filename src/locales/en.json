@@ -2,6 +2,10 @@
   "header": {
     "tagline": "Build circuits. See the electricity flow!"
   },
+  "mode": {
+    "structured": "Structured",
+    "free": "Free Design"
+  },
   "toolbar": {
     "generatorVoltage": "Generator Voltage",
     "addToCircuit": "Add to Circuit",
@@ -31,7 +35,14 @@
     "steel": "Steel",
     "nichrome": "Nichrome",
     "estLength": "Est. length",
-    "wireR": "Wire R"
+    "wireR": "Wire R",
+    "tools": "Tools",
+    "save": "Save",
+    "load": "Load",
+    "wireStyle": "Wire Style",
+    "curved": "Curved",
+    "straight": "Straight",
+    "corner": "Corner"
   },
   "info": {
     "voltage": "Voltage",
@@ -40,10 +51,16 @@
     "switchOn": "Switch is ON — Click to Open",
     "switchOff": "Switch is OFF — Click to Close",
     "remove": "Remove",
+    "rotate": "Rotate",
+    "rotateText": "Rotate text with component",
+    "removeWire": "Remove Wire",
+    "wire": "Wire",
     "lamp": "Lamp",
     "amperemeter": "Amperemeter",
     "voltmeter": "Voltmeter",
-    "switch": "Switch"
+    "switch": "Switch",
+    "generator": "Generator",
+    "junction": "Junction"
   },
   "circuit": {
     "totals": "CIRCUIT TOTALS",
@@ -65,5 +82,22 @@
     "wireInfoR": "Wire resistance",
     "wireInfoVoltageDrop": "Voltage drop",
     "wireInfoExplain": "In a real circuit, wires have resistance that depends on material, length, and diameter. Longer or thinner wires have higher resistance — reducing the voltage available to the components."
+  },
+  "freeMode": {
+    "tool": "Tool",
+    "selectTool": "Select",
+    "wireTool": "Wire",
+    "placeLamp": "Place Lamp",
+    "placeSwitch": "Place Switch",
+    "placeAmmeter": "Place Ammeter",
+    "placeVoltmeter": "Place Voltmeter",
+    "clickToPlace": "Click on the canvas to place",
+    "clickTerminal": "Click a terminal dot to connect",
+    "pressEsc": "Esc to cancel",
+    "noGenerator": "No generator found — add a voltage source to the circuit.",
+    "openCircuit": "The circuit is open — no complete path for current to flow.",
+    "placeGenerator": "Generator",
+    "placeJunction": "Junction",
+    "tooComplex": "This circuit is too complex for automatic analysis. Try simplifying your connections."
   }
 }

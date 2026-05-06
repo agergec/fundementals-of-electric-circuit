@@ -2,6 +2,10 @@
   "header": {
     "tagline": "Construis des circuits. Observe le courant électrique !"
   },
+  "mode": {
+    "structured": "Structuré",
+    "free": "Dessin libre"
+  },
   "toolbar": {
     "generatorVoltage": "Tension du générateur",
     "addToCircuit": "Ajouter au circuit",
@@ -31,7 +35,14 @@
     "steel": "Acier",
     "nichrome": "Nichrome",
     "estLength": "Long. estimée",
-    "wireR": "R fil"
+    "wireR": "R fil",
+    "tools": "Outils",
+    "save": "Sauver",
+    "load": "Charger",
+    "wireStyle": "Style fil",
+    "curved": "Courbé",
+    "straight": "Droit",
+    "corner": "Angle"
   },
   "info": {
     "voltage": "Tension",
@@ -40,10 +51,16 @@
     "switchOn": "Interrupteur FERMÉ — Cliquer pour ouvrir",
     "switchOff": "Interrupteur OUVERT — Cliquer pour fermer",
     "remove": "Supprimer",
+    "rotate": "Tourner",
+    "rotateText": "Tourner le texte",
+    "removeWire": "Supprimer le fil",
+    "wire": "Fil",
     "lamp": "Lampe",
     "amperemeter": "Ampèremètre",
     "voltmeter": "Voltmètre",
-    "switch": "Interrupteur"
+    "switch": "Interrupteur",
+    "generator": "Générateur",
+    "junction": "Jonction"
   },
   "circuit": {
     "totals": "TOTAUX DU CIRCUIT",
@@ -65,5 +82,22 @@
     "wireInfoR": "Résistance du fil",
     "wireInfoVoltageDrop": "Chute de tension",
     "wireInfoExplain": "Dans un circuit réel, les fils ont une résistance qui dépend du matériau, de la longueur et du diamètre. Plus le fil est long ou fin, plus sa résistance est élevée — et plus la tension disponible pour les composants est réduite."
+  },
+  "freeMode": {
+    "tool": "Outil",
+    "selectTool": "Sélection",
+    "wireTool": "Fil",
+    "placeLamp": "Placer lampe",
+    "placeSwitch": "Placer interr.",
+    "placeAmmeter": "Placer ampèrem.",
+    "placeVoltmeter": "Placer voltm.",
+    "clickToPlace": "Clique sur le canevas pour placer",
+    "clickTerminal": "Clique sur une borne pour connecter",
+    "pressEsc": "Échap pour annuler",
+    "noGenerator": "Aucun générateur trouvé — ajoute une source de tension au circuit.",
+    "openCircuit": "Le circuit est ouvert — aucun chemin complet pour le courant.",
+    "placeGenerator": "Générateur",
+    "placeJunction": "Jonction",
+    "tooComplex": "Ce circuit est trop complexe pour l'analyse automatique. Essaie de simplifier tes connexions."
   }
 }

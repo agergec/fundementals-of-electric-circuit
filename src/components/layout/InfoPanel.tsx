@@ -1,6 +1,8 @@
 import { X, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
+import { useFreeModeStore } from '../../store/freeModeStore';
+import { useModeStore } from '../../store/modeStore';
 import { RESISTANCE_OPTIONS, BASE_RESISTANCE } from '../../utils/constants';
 import { formatVoltage, formatCurrent, formatResistance } from '../../utils/formatters';
 import type { CircuitNode, ComponentNode } from '../../engine/types';
@@ -23,7 +25,15 @@ function findComponentById(node: CircuitNode, id: string): ComponentNode | null 
 }
 
 export function InfoPanel() {
-  const { t } = useTranslation();
+  const mode = useModeStore((s) => s.mode);
+
+  if (mode === 'structured') {
+    return <StructuredInfoPanel />;
+  }
+  return <FreeModeInfoPanel />;
+}
+
+function StructuredInfoPanel() {
   const {
     selectedComponentId,
     selectComponent,
@@ -41,24 +51,163 @@ export function InfoPanel() {
 
   const values = calculatedValues[selectedComponentId];
 
+  return (
+    <InfoPanelContent
+      componentType={component.componentType}
+      componentId={selectedComponentId}
+      resistanceMultiplier={component.resistanceMultiplier}
+      closed={component.closed}
+      values={values}
+      onClose={() => selectComponent(null)}
+      onRemove={() => { removeComponent(selectedComponentId); selectComponent(null); }}
+      onToggleSwitch={() => toggleSwitch(selectedComponentId)}
+      onSetResistance={(m) => setLampResistance(selectedComponentId, m)}
+    />
+  );
+}
+
+function FreeModeInfoPanel() {
+  const { t } = useTranslation();
+  const {
+    selectedComponentId,
+    selectComponent,
+    selectWire,
+    components,
+    wires,
+    calculatedValues,
+    removeComponent,
+    removeWire,
+    toggleSwitch,
+    setLampMultiplier,
+    rotateComponent,
+    setRotateText,
+    setWireLineTypeById,
+    selectedWireId,
+  } = useFreeModeStore();
+
+  // Wire selected?
+  if (selectedWireId) {
+    const wire = wires.find((w) => w.id === selectedWireId);
+    if (!wire) return null;
+    // Find connected components
+    const [fCid] = wire.fromTerminal.split(':');
+    const [tCid] = wire.toTerminal.split(':');
+    const fc = components.find((c) => c.id === fCid);
+    const tc = components.find((c) => c.id === tCid);
+
+    return (
+      <div className="absolute bottom-4 right-4 w-72 bg-[#2d2a3e] rounded-xl border border-[#4a4560] shadow-2xl p-4 z-10">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-purple-400">{t('info.wire')}</h3>
+          <button onClick={() => selectWire(null)} className="text-[#6b6580] hover:text-white transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="bg-[#1e1b2e] rounded-lg p-2 mb-3 text-xs text-[#8b83a8]">
+          <p>{fc?.componentType} ↔ {tc?.componentType}</p>
+          <p className="mt-1">Material: <span className="text-purple-300">{t(`toolbar.${wire.material}`)}</span></p>
+          <p>{t('toolbar.diameter')}: {wire.diameterMm.toFixed(1)} mm</p>
+          <div className="mt-2">
+            <div className="text-[10px] text-[#6b6580] uppercase mb-1">{t('toolbar.wireStyle')}</div>
+            <div className="grid grid-cols-3 gap-1">
+              {(['curved', 'straight', 'corner'] as const).map((lt) => (
+                <button key={lt} onClick={() => setWireLineTypeById(selectedWireId, lt)}
+                  className={`py-1 rounded text-[10px] font-bold transition-colors
+                    ${wire.lineType === lt ? 'bg-purple-700 text-white' : 'bg-[#2d2a3e] text-[#8b83a8] hover:bg-[#3d3a4e]'}`}>
+                  {t(`toolbar.${lt}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => { removeWire(selectedWireId); selectWire(null); }}
+          className="flex items-center gap-2 w-full justify-center px-3 py-2 rounded-lg
+                     bg-red-900/20 text-red-400 text-sm font-medium hover:bg-red-900/40
+                     transition-colors border border-red-900/40"
+        >
+          <Trash2 size={14} />
+          {t('info.removeWire')}
+        </button>
+      </div>
+    );
+  }
+
+  // Component selected?
+  if (!selectedComponentId) return null;
+  const comp = components.find((c) => c.id === selectedComponentId);
+  if (!comp) return null;
+
+  const values = calculatedValues[selectedComponentId];
+
+  return (
+    <InfoPanelContent
+      componentType={comp.componentType}
+      componentId={selectedComponentId}
+      resistanceMultiplier={comp.resistanceMultiplier}
+      closed={comp.closed}
+      values={values}
+      onClose={() => selectComponent(null)}
+      onRemove={() => { removeComponent(selectedComponentId); selectComponent(null); }}
+      onToggleSwitch={() => toggleSwitch(selectedComponentId)}
+      onSetResistance={(m) => setLampMultiplier(selectedComponentId, m)}
+      onRotate={(dir) => rotateComponent(selectedComponentId, dir)}
+      rotation={comp.rotation}
+      rotateText={comp.rotateText}
+      onToggleRotateText={() => setRotateText(selectedComponentId, !comp.rotateText)}
+    />
+  );
+}
+
+// ── Shared UI ──
+
+interface InfoPanelContentProps {
+  componentType: string;
+  componentId: string;
+  resistanceMultiplier: number;
+  closed?: boolean;
+  rotation?: number;
+  values?: { voltage: number; current: number; resistance: number };
+  onClose: () => void;
+  onRemove: () => void;
+  onToggleSwitch: () => void;
+  onSetResistance: (multiplier: number) => void;
+  onRotate?: (dir: number) => void;
+  rotateText?: boolean;
+  onToggleRotateText?: () => void;
+}
+
+function InfoPanelContent({
+  componentType,
+  resistanceMultiplier,
+  closed,
+  values,
+  onClose,
+  onRemove,
+  onToggleSwitch,
+  onSetResistance,
+  onRotate,
+  rotateText,
+  onToggleRotateText,
+}: InfoPanelContentProps) {
+  const { t } = useTranslation();
+
   const typeColors: Record<string, string> = {
     lamp: 'text-yellow-400',
     ammeter: 'text-red-400',
     voltmeter: 'text-blue-400',
     switch: 'text-green-400',
+    generator: 'text-amber-400',
   };
 
   return (
     <div className="absolute bottom-4 right-4 w-72 bg-[#2d2a3e] rounded-xl border border-[#4a4560] shadow-2xl p-4 z-10">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className={`font-bold ${typeColors[component.componentType]}`}>
-          {t(`info.${component.componentType}`)}
+        <h3 className={`font-bold ${typeColors[componentType] ?? 'text-white'}`}>
+          {t(`info.${componentType}`)}
         </h3>
-        <button
-          onClick={() => selectComponent(null)}
-          className="text-[#6b6580] hover:text-white transition-colors"
-        >
+        <button onClick={onClose} className="text-[#6b6580] hover:text-white transition-colors">
           <X size={16} />
         </button>
       </div>
@@ -82,17 +231,17 @@ export function InfoPanel() {
       )}
 
       {/* Resistance picker for lamps */}
-      {component.componentType === 'lamp' && (
+      {componentType === 'lamp' && (
         <div className="mb-3">
           <div className="text-[10px] text-[#6b6580] uppercase mb-2">{t('info.resistance')}</div>
           <div className="flex flex-wrap gap-1">
             {RESISTANCE_OPTIONS.map((opt) => (
               <button
                 key={opt.label}
-                onClick={() => setLampResistance(selectedComponentId, opt.multiplier)}
+                onClick={() => onSetResistance(opt.multiplier)}
                 className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors
                   ${
-                    component.resistanceMultiplier === opt.multiplier
+                    resistanceMultiplier === opt.multiplier
                       ? 'bg-green-600 text-white'
                       : 'bg-[#1e1b2e] text-[#8b83a8] hover:bg-[#3d3a4e]'
                   }`}
@@ -108,27 +257,51 @@ export function InfoPanel() {
       )}
 
       {/* Switch toggle */}
-      {component.componentType === 'switch' && (
+      {componentType === 'switch' && (
         <div className="mb-3">
           <button
-            onClick={() => toggleSwitch(selectedComponentId)}
+            onClick={onToggleSwitch}
             className={`w-full px-3 py-2 rounded-lg text-sm font-bold transition-colors border
-              ${component.closed
+              ${closed
                 ? 'bg-green-900/30 text-green-400 border-green-700 hover:bg-green-900/50'
                 : 'bg-red-900/30 text-red-400 border-red-700 hover:bg-red-900/50'
               }`}
           >
-            {component.closed ? t('info.switchOn') : t('info.switchOff')}
+            {closed ? t('info.switchOn') : t('info.switchOff')}
           </button>
+        </div>
+      )}
+
+      {/* Rotate buttons */}
+      {onRotate && (
+        <div className="mb-3">
+          <div className="text-[10px] text-[#6b6580] uppercase mb-1">{t('info.rotate')}</div>
+          <div className="grid grid-cols-2 gap-1 mb-2">
+            <button onClick={() => onRotate(-90)}
+              className="px-3 py-1.5 rounded-md text-xs font-bold transition-colors
+                         bg-[#1e1b2e] text-[#8b83a8] border border-[#4a4560] hover:bg-[#3d3a4e]">
+              ↺ -90°
+            </button>
+            <button onClick={() => onRotate(90)}
+              className="px-3 py-1.5 rounded-md text-xs font-bold transition-colors
+                         bg-[#1e1b2e] text-[#8b83a8] border border-[#4a4560] hover:bg-[#3d3a4e]">
+              ↻ +90°
+            </button>
+          </div>
+          {onToggleRotateText && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={rotateText ?? false}
+                onChange={() => onToggleRotateText()}
+                className="accent-purple-400 w-3.5 h-3.5" />
+              <span className="text-[10px] text-[#8b83a8]">{t('info.rotateText')}</span>
+            </label>
+          )}
         </div>
       )}
 
       {/* Delete button */}
       <button
-        onClick={() => {
-          removeComponent(selectedComponentId);
-          selectComponent(null);
-        }}
+        onClick={onRemove}
         className="flex items-center gap-2 w-full justify-center px-3 py-2 rounded-lg
                    bg-red-900/20 text-red-400 text-sm font-medium hover:bg-red-900/40
                    transition-colors border border-red-900/40"
