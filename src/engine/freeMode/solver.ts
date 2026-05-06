@@ -4,6 +4,7 @@ import { terminalId } from '../types';
 import { solveCircuit } from '../solve';
 import { buildGraph } from './graph';
 import { reduceToCircuit } from './topology';
+import { solveMNA } from './mna';
 import { WIRE_MATERIALS } from '../../utils/constants';
 
 
@@ -99,10 +100,22 @@ export function solveFreeCircuit(
     };
   }
 
-  // ── 2. Reduce to series/parallel tree ──
+  // ── 2. Try series/parallel reduction, fall back to MNA ──
   const tree = reduceToCircuit(edges, generatorNodes.pos, generatorNodes.neg);
+  let solverResult: { values: Record<string, CalculatedValues>; totalResistance: number; totalCurrent: number } | null = null;
 
-  if (!tree) {
+  if (tree) {
+    const r = solveCircuit(tree, voltage);
+    solverResult = { values: r.values, totalResistance: r.totalResistance, totalCurrent: r.totalCurrent };
+  } else {
+    // Fall back to MNA for non-series-parallel circuits
+    const mnaResult = solveMNA(components, wires, voltage);
+    if (mnaResult) {
+      solverResult = mnaResult;
+    }
+  }
+
+  if (!solverResult) {
     return {
       success: false,
       tree: null,
@@ -115,10 +128,7 @@ export function solveFreeCircuit(
     };
   }
 
-  // ── 3. Run existing solver ──
-  const result = solveCircuit(tree, voltage);
-
-  // ── 4. Compute wire resistances ──
+  // ── 3. Compute wire resistances ──
   const wireResistances: Record<string, number> = {};
   let totalWireResistance = 0;
 
@@ -156,13 +166,13 @@ export function solveFreeCircuit(
   }
 
   // Add total wire resistance to total
-  const totalR = result.totalResistance + totalWireResistance;
+  const totalR = solverResult.totalResistance + totalWireResistance;
   const totalI = totalR > 0 && isFinite(totalR) ? voltage / totalR : 0;
 
   return {
     success: true,
     tree,
-    values: result.values,
+    values: solverResult.values,
     totalResistance: totalR,
     totalCurrent: totalI,
     wireResistances,

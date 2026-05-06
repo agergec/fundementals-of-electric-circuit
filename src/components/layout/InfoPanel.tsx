@@ -230,8 +230,8 @@ function InfoPanelContent({
         </div>
       )}
 
-      {/* Resistance picker for lamps */}
-      {componentType === 'lamp' && (
+      {/* Resistance picker for lamps and resistors */}
+      {(componentType === 'lamp' || componentType === 'resistor') && (
         <div className="mb-3">
           <div className="text-[10px] text-[#6b6580] uppercase mb-2">{t('info.resistance')}</div>
           <div className="flex flex-wrap gap-1">

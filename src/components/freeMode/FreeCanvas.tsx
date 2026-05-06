@@ -403,7 +403,9 @@ export function FreeCanvas() {
            activeTool === 'place-switch' ? t('freeMode.placeSwitch') :
            activeTool === 'place-ammeter' ? t('freeMode.placeAmmeter') :
            activeTool === 'place-voltmeter' ? t('freeMode.placeVoltmeter') :
-           activeTool === 'place-junction' ? t('freeMode.placeJunction') : ''}
+           activeTool === 'place-resistor' ? t('freeMode.placeResistor') :
+          activeTool === 'place-fuse' ? t('freeMode.placeFuse') :
+          activeTool === 'place-junction' ? t('freeMode.placeJunction') : ''}
         </span>
         {activeTool === 'wire' && <span className="text-[10px] text-[#8b83a8]">— {t('freeMode.clickTerminal')}</span>}
         {activeTool.startsWith('place-') && <span className="text-[10px] text-[#8b83a8]">— {t('freeMode.clickToPlace')}</span>}

@@ -17,6 +17,10 @@ export function calcResistance(node: CircuitNode): number {
           return Infinity; // not in main path
         case 'switch':
           return node.closed ? 0 : Infinity;
+        case 'resistor':
+          return BASE_RESISTANCE * node.resistanceMultiplier;
+        case 'fuse':
+          return 0;
         default:
           return 0;
       }

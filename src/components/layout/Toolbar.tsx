@@ -221,6 +221,12 @@ function FreeModeToolbar() {
           <PlaceChip icon={<span className="font-black text-sm leading-none">V</span>} label={t('info.voltmeter')}
             active={activeTool === 'place-voltmeter'} compType="voltmeter"
             onClick={() => setActiveTool('place-voltmeter')} />
+          <PlaceChip icon={<span className="font-black text-xs leading-none">Ω</span>} label={t('freeMode.placeResistor')}
+            active={activeTool === 'place-resistor'} compType="resistor"
+            onClick={() => setActiveTool('place-resistor')} />
+          <PlaceChip icon={<span className="font-black text-xs leading-none">~</span>} label={t('freeMode.placeFuse')}
+            active={activeTool === 'place-fuse'} compType="fuse"
+            onClick={() => setActiveTool('place-fuse')} />
           <PlaceChip icon={<span className="font-black text-xs leading-none">●</span>} label={t('freeMode.placeJunction')}
             active={activeTool === 'place-junction'} compType="junction"
             onClick={() => setActiveTool('place-junction')} />

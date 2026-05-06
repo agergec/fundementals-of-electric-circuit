@@ -5,6 +5,8 @@ import { Lamp } from '../elements/Lamp';
 import { Amperemeter } from '../elements/Amperemeter';
 import { Voltmeter } from '../elements/Voltmeter';
 import { Switch } from '../elements/Switch';
+import { Resistor } from '../elements/Resistor';
+import { Fuse } from '../elements/Fuse';
 
 const COMP_HALF_W = 40;
 
@@ -98,6 +100,8 @@ export const FreeComponent = memo(function FreeComponent({
         {componentType === 'ammeter' && <Amperemeter x={0} y={0} values={values} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
         {componentType === 'voltmeter' && <Voltmeter x={0} y={0} values={values} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
         {componentType === 'switch' && <Switch x={0} y={0} closed={!!closed} isSelected={isSelected} onClick={bodyClick} onDoubleClick={bodyDblClick} rotation={elemRotation} />}
+        {componentType === 'resistor' && <Resistor x={0} y={0} multiplier={resistanceMultiplier} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
+        {componentType === 'fuse' && <Fuse x={0} y={0} blown={!!component.blown} current={values?.current} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
         {isJunction && <circle cx={0} cy={0} r={10} fill="#a78bfa" stroke="#c4b5fd" strokeWidth={2} />}
 
         {(componentType as string) !== 'generator' && [0, 1].map((idx) => {

@@ -1,4 +1,4 @@
-export type ComponentType = 'lamp' | 'ammeter' | 'voltmeter' | 'switch' | 'generator' | 'junction';
+export type ComponentType = 'lamp' | 'ammeter' | 'voltmeter' | 'switch' | 'generator' | 'junction' | 'resistor' | 'fuse';
 
 export interface ComponentNode {
   kind: 'component';
@@ -56,7 +56,8 @@ export interface FreeComponent {
   rotation: number; // 0, 90, 180, 270
   resistanceMultiplier: number;
   closed?: boolean; // for switches
-  rotateText?: boolean; // default false — text stays upright unless enabled
+  blown?: boolean; // for fuses
+  rotateText?: boolean;
 }
 
 export interface FreeWire {
@@ -72,7 +73,7 @@ export interface FreeWire {
   corner2Y?: number;
 }
 
-export type ToolType = 'select' | 'wire' | 'place-generator' | 'place-lamp' | 'place-switch' | 'place-ammeter' | 'place-voltmeter' | 'place-junction';
+export type ToolType = 'select' | 'wire' | 'place-generator' | 'place-lamp' | 'place-switch' | 'place-ammeter' | 'place-voltmeter' | 'place-junction' | 'place-resistor' | 'place-fuse';
 
 export interface FreeSolverResult {
   totalResistance: number;

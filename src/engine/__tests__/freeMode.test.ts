@@ -148,14 +148,14 @@ describe('solveFreeCircuit', () => {
     expect(result.errorKey).toBe('freeMode.noGenerator');
   });
 
-  it('returns error for open circuit', () => {
+  it('solves open circuit with MNA fallback', () => {
     const gen = fc('gen', 'generator', 80, 200);
     const lamp = fc('l1', 'lamp', 240, 200);
     // Only wire gen+ to lamp — no return path
     const wires = [wire('gen:1', 'l1:0')];
     const result = solveFreeCircuit([gen, lamp], wires, 12);
-    expect(result.success).toBe(false);
-    // The lamp creates an edge with one unconnected terminal — topology can't resolve
-    expect(result.errorKey).toBe('freeMode.tooComplex');
+    // MNA fallback handles this — computes 0 current, very high resistance
+    expect(result.success).toBe(true);
+    expect(result.totalCurrent).toBeCloseTo(0, 0);
   });
 });
