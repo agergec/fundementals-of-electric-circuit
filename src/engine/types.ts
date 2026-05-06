@@ -66,8 +66,10 @@ export interface FreeWire {
   material: import('../utils/constants').WireMaterial;
   diameterMm: number;
   lineType: 'curved' | 'straight' | 'corner';
-  cornerX?: number;
-  cornerY?: number;
+  corner1X?: number;
+  corner1Y?: number;
+  corner2X?: number;
+  corner2Y?: number;
 }
 
 export type ToolType = 'select' | 'wire' | 'place-generator' | 'place-lamp' | 'place-switch' | 'place-ammeter' | 'place-voltmeter' | 'place-junction';

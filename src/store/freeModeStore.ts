@@ -5,6 +5,9 @@ import { terminalId } from '../engine/types';
 import type { WireMaterial } from '../utils/constants';
 import { DEFAULT_VOLTAGE } from '../utils/constants';
 import { solveFreeCircuit } from '../engine/freeMode/solver';
+import { validateCircuit } from '../engine/freeMode/validate';
+import { importFromTree } from '../engine/freeMode/importTree';
+import type { CircuitNode } from '../engine/types';
 
 // ── ID generator ──
 let nextId = 1;
@@ -63,6 +66,8 @@ interface FreeModeStore {
   totalWireResistance: number;
   terminalPolarities: Record<string, '+' | '-'>;
   solverErrorKey: string | null;
+  validationIssues: { level: string; key: string; detailKey: string; ids: string[] }[];
+  errorIds: string[];
   pendingWire: { fromTerminal: TerminalId; toX: number; toY: number } | null;
 
   // Undo/redo
@@ -89,7 +94,7 @@ interface FreeModeStore {
   setWireDiameterMm: (d: number) => void;
   setWireLineType: (t: 'curved' | 'straight' | 'corner') => void;
   setWireLineTypeById: (wireId: string, t: 'curved' | 'straight' | 'corner') => void;
-  setWireCorner: (wireId: string, cx: number, cy: number) => void;
+  setWireCorners: (wireId: string, c1x: number, c1y: number, c2x: number, c2y: number) => void;
   startWire: (from: TerminalId, mouseX: number, mouseY: number) => void;
   updateWirePreview: (mouseX: number, mouseY: number) => void;
   cancelWire: () => void;
@@ -98,6 +103,7 @@ interface FreeModeStore {
   resetCircuit: () => void;
   saveCircuit: () => void;
   loadCircuit: () => void;
+  importFromStructured: (tree: CircuitNode, voltage: number) => void;
 }
 
 function createDefaultComponents(): FreeComponent[] {
@@ -122,6 +128,8 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
   totalWireResistance: 0,
   terminalPolarities: {},
   solverErrorKey: null,
+  validationIssues: [],
+  errorIds: [],
   pendingWire: null,
   undoStack: [],
   redoStack: [],
@@ -313,9 +321,9 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
     return { wires, ...recalc({ ...s, wires }) };
   }),
 
-  setWireCorner: (wireId, cx, cy) => set((s) => {
+  setWireCorners: (wireId, c1x, c1y, c2x, c2y) => set((s) => {
     const wires = s.wires.map((w) =>
-      w.id === wireId ? { ...w, cornerX: cx, cornerY: cy } : w,
+      w.id === wireId ? { ...w, corner1X: c1x, corner1Y: c1y, corner2X: c2x, corner2Y: c2y } : w,
     );
     return { wires };
   }),
@@ -425,6 +433,24 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
       });
     } catch { /* corrupted data, silently fail */ }
   },
+
+  importFromStructured: (tree, voltage) => {
+    const s = useFreeModeStore.getState();
+    const result = importFromTree(tree, voltage, s.wireMaterial, s.wireDiameterMm);
+    nextId = Math.max(nextId, 2000);
+    set({
+      components: result.components,
+      wires: result.wires,
+      voltage: result.voltage,
+      activeTool: 'select',
+      selectedComponentId: null,
+      selectedWireId: null,
+      pendingWire: null,
+      undoStack: [],
+      redoStack: [],
+      ...recalcRaw(result.components, result.wires, result.voltage),
+    });
+  },
 }));
 
 // ── Recalculation ──
@@ -444,6 +470,7 @@ function recalcRaw(
   voltage: number,
 ): Partial<FreeModeStore> {
   const result = solveFreeCircuit(components, wires, voltage);
+  const validation = validateCircuit(components, wires, result, voltage);
 
   if (!result.success) {
     return {
@@ -454,6 +481,8 @@ function recalcRaw(
       totalWireResistance: result.totalWireResistance,
       terminalPolarities: {},
       solverErrorKey: result.errorKey ?? null,
+      validationIssues: validation.issues,
+      errorIds: [...validation.errorIds],
     };
   }
 
@@ -465,6 +494,8 @@ function recalcRaw(
     totalWireResistance: result.totalWireResistance,
     terminalPolarities: result.polarities,
     solverErrorKey: null,
+    validationIssues: validation.issues,
+    errorIds: [...validation.errorIds],
   };
 }
 

@@ -17,6 +17,7 @@ interface FreeComponentProps {
   isWiring: boolean;
   voltage: number;
   polarities?: Record<string, '+' | '-'>;
+  hasError?: boolean;
   onComponentClick: (id: string, e: React.MouseEvent) => void;
   onComponentMouseDown: (id: string, e: React.MouseEvent) => void;
   onTerminalClick: (componentId: string, index: 0 | 1, e: React.MouseEvent) => void;
@@ -58,6 +59,7 @@ export const FreeComponent = memo(function FreeComponent({
   onDoubleClick,
   highlightTerminal,
   polarities,
+  hasError,
 }: FreeComponentProps) {
   const { id, componentType, x, y, rotation, resistanceMultiplier, closed, rotateText } = component;
 
@@ -97,6 +99,16 @@ export const FreeComponent = memo(function FreeComponent({
 
   return (
     <g transform={`translate(${x}, ${y})`} data-comp={id}>
+      {/* Error ring — red animated dash */}
+      {hasError && (
+        <circle cx={0} cy={0} r={isJunction ? 16 : COMP_HALF_W}
+          fill="none" stroke="#ef4444" strokeWidth={2.5}
+          strokeDasharray="6 3" opacity={0.9}
+        >
+          <animate attributeName="stroke-dashoffset" from="0" to="18" dur="0.8s" repeatCount="indefinite" />
+        </circle>
+      )}
+
       {/* Selection ring */}
       {isSelected && !isJunction && (
         <rect x={-COMP_HALF_W - 8} y={-42} width={COMP_HALF_W * 2 + 16} height={84}

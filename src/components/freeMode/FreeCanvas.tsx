@@ -68,6 +68,8 @@ export function FreeCanvas() {
     totalWireResistance,
     terminalPolarities,
     solverErrorKey,
+    validationIssues,
+    errorIds,
     pendingWire,
     placeComponent,
     removeComponent,
@@ -77,7 +79,7 @@ export function FreeCanvas() {
     setActiveTool,
     selectComponent,
     selectWire,
-    setWireCorner,
+    setWireCorners,
     toggleSwitch,
     startWire,
     updateWirePreview,
@@ -380,8 +382,31 @@ export function FreeCanvas() {
         <span className="text-[10px] text-[#4a4560] ml-auto">{t('freeMode.pressEsc')}</span>
       </div>
 
+      {/* Validation issue banners */}
+      {validationIssues.length > 0 && (
+        <div className="flex flex-col gap-1 px-4 pt-3 shrink-0">
+          {validationIssues.map((issue, i) => {
+            const colors = issue.level === 'error'
+              ? 'bg-red-950/60 border-red-500 text-red-400'
+              : issue.level === 'warning'
+              ? 'bg-amber-950/60 border-amber-500 text-amber-400'
+              : 'bg-blue-950/60 border-blue-500 text-blue-400';
+            const icon = issue.level === 'error' ? '⚡' : issue.level === 'warning' ? '⚠' : 'ℹ';
+            return (
+              <div key={i} className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-xs ${colors}`}>
+                <span className="shrink-0 font-bold">{icon}</span>
+                <div>
+                  <span className="font-bold">{t(issue.key)}: </span>
+                  <span className="text-[#9ca3af]">{t(issue.detailKey)}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Solver error banner */}
-      {solverErrorKey && (
+      {solverErrorKey && !validationIssues.length && (
         <div className="shrink-0 mx-4 mt-2 rounded-lg border border-red-500 bg-red-950/60 px-3 py-2 text-xs text-red-400">
           {t(solverErrorKey)}
         </div>
@@ -452,10 +477,12 @@ export function FreeCanvas() {
                 strokeWidth={wireStrokeWidth}
                 wireResistance={wireResistances[w.id]}
                 lineType={w.lineType || 'straight'}
-                cornerX={w.cornerX}
-                cornerY={w.cornerY}
+                corner1X={w.corner1X}
+                corner1Y={w.corner1Y}
+                corner2X={w.corner2X}
+                corner2Y={w.corner2Y}
                 isWiring={isWiring}
-                onCornerDrag={setWireCorner}
+                onCornersDrag={setWireCorners}
                 showResistance={wireEnabled}
                 onClick={handleWireClick}
               />
@@ -479,6 +506,7 @@ export function FreeCanvas() {
                 onTerminalMouseDown={handleTerminalMouseDown}
                 onDoubleClick={handleComponentDoubleClick}
                 polarities={terminalPolarities}
+                hasError={errorIds.includes(comp.id)}
                 highlightTerminal={getHighlightFor(comp.id)}
               />
             ))}

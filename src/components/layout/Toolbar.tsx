@@ -19,13 +19,14 @@ export function Toolbar() {
 function StructuredToolbar() {
   const { t } = useTranslation();
   const {
+    circuit,
+    voltage,
     addComponent,
     addAmperemeterNear,
     addVoltmeterAcross,
     addParallelBranch,
     addAmmeterParallelBranch,
     selectedComponentId,
-    voltage,
     setVoltage,
     resetCircuit,
     wireEnabled,
@@ -37,6 +38,13 @@ function StructuredToolbar() {
     setWireMaterial,
     setWireDiameterMm,
   } = useCircuitStore();
+  const { setMode } = useModeStore();
+  const importToFree = useFreeModeStore((s) => s.importFromStructured);
+
+  const handleImportToFree = () => {
+    importToFree(circuit, voltage);
+    setMode('free');
+  };
 
   const hasSelection = !!selectedComponentId;
 
@@ -111,7 +119,13 @@ function StructuredToolbar() {
         setWireEnabled={setWireEnabled} setWireMaterial={setWireMaterial} setWireDiameterMm={setWireDiameterMm}
       />
 
-      <div className="mt-auto pt-1">
+      <div className="mt-auto pt-1 flex flex-col gap-1">
+        <button onClick={handleImportToFree}
+          className="flex items-center gap-2 px-3 py-2 w-full justify-center rounded-xl
+                     bg-purple-900/20 text-purple-400 text-xs font-semibold hover:bg-purple-900/40
+                     transition-colors border border-purple-900/30">
+          {t('toolbar.importToFree')}
+        </button>
         <button onClick={resetCircuit}
           className="flex items-center gap-2 px-3 py-2 w-full justify-center rounded-xl
                      bg-red-900/20 text-red-500 text-xs font-semibold hover:bg-red-900/40
