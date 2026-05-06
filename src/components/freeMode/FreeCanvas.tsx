@@ -4,10 +4,11 @@ import { useFreeModeStore, getTerminalPos } from '../../store/freeModeStore';
 import { FreeComponent } from './FreeComponent';
 import { FreeWire } from './FreeWire';
 import { WireDrawingLayer } from './WireDrawingLayer';
+import { BreadboardGrid } from './BreadboardGrid';
 import { PIXEL_TO_METERS } from '../../utils/constants';
 import type { FreeComponent as FreeComponentT } from '../../engine/types';
 
-const SNAP = 20;
+const SNAP = 40;
 
 
 
@@ -80,6 +81,7 @@ export function FreeCanvas() {
     selectComponent,
     selectWire,
     setWireCorners,
+    rewireEndpoint,
     toggleSwitch,
     startWire,
     updateWirePreview,
@@ -87,6 +89,7 @@ export function FreeCanvas() {
     undo,
     redo,
     pushHistory,
+    breadboard,
   } = useFreeModeStore();
 
   const isFlowing = totalCurrent > 0.0001;
@@ -100,6 +103,8 @@ export function FreeCanvas() {
   const panDrag = useRef<{ startX: number; startY: number; panX: number; panY: number; moved: boolean } | null>(null);
   // Component drag
   const compDrag = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null);
+  // Endpoint drag for rewiring
+  const endpointDrag = useRef<{ wireId: string; end: 'from' | 'to' } | null>(null);
   // Terminal hover highlight
   const [highlightComp, setHighlightComp] = useState<{ compId: string; index: 0 | 1 } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -202,6 +207,22 @@ export function FreeCanvas() {
   };
 
   const onSvgMouseUp = (e: React.MouseEvent<SVGSVGElement>) => {
+    // Complete endpoint rewiring
+    if (endpointDrag.current) {
+      const svg = svgRef.current;
+      if (svg) {
+        const rect = svg.getBoundingClientRect();
+        const c = toCanvas(e.clientX, e.clientY, rect, view);
+        const nearest = findClosestTerminal(c.x, c.y, components, 24);
+        if (nearest) {
+          const tid = `${nearest.compId}:${nearest.index}`;
+          rewireEndpoint(endpointDrag.current.wireId, endpointDrag.current.end, tid);
+        }
+      }
+      endpointDrag.current = null;
+      return;
+    }
+
     // Complete wire if drawing
     if (pendingWire) {
       const svg = svgRef.current;
@@ -284,6 +305,13 @@ export function FreeCanvas() {
     const tid = `${compId}:${index}`;
     const pos = getTerminalPos(compId, index, components);
     startWire(tid, pos?.x ?? 0, pos?.y ?? 0);
+  };
+
+  // ── Endpoint drag (rewire) ──
+
+  const handleEndpointDrag = (wireId: string, end: 'from' | 'to', e: React.MouseEvent) => {
+    e.stopPropagation();
+    endpointDrag.current = { wireId, end };
   };
 
   // ── Wire interaction ──
@@ -464,6 +492,7 @@ export function FreeCanvas() {
           <rect className="canvas-bg" width="100%" height="100%" fill="url(#grid)" />
 
           <g transform={`translate(${view.x}, ${view.y}) scale(${view.scale})`}>
+            {breadboard && <BreadboardGrid />}
             {/* Wires */}
             {wires.map((w) => (
               <FreeWire
@@ -483,6 +512,7 @@ export function FreeCanvas() {
                 corner2Y={w.corner2Y}
                 isWiring={isWiring}
                 onCornersDrag={setWireCorners}
+                onEndpointDrag={handleEndpointDrag}
                 showResistance={wireEnabled}
                 onClick={handleWireClick}
               />

@@ -1,5 +1,6 @@
 import type { FreeComponent, FreeWire, CircuitNode } from '../types';
 import type { CalculatedValues } from '../types';
+import { terminalId } from '../types';
 import { solveCircuit } from '../solve';
 import { buildGraph } from './graph';
 import { reduceToCircuit } from './topology';
@@ -40,12 +41,39 @@ export function solveFreeCircuit(
   // ── 1. Build graph ──
   const graph = buildGraph(components, wires);
 
-  // Build terminal polarities from generator connection (available even on solver failure)
+  // Build terminal polarities from generator connection
   const polarities: Record<string, '+' | '-'> = {};
   if (graph.generatorNodes) {
     for (const [tid, nodeId] of graph.nodeMap) {
       if (nodeId === graph.generatorNodes.pos) polarities[tid] = '+';
       else if (nodeId === graph.generatorNodes.neg) polarities[tid] = '-';
+    }
+    // Propagate through components: if one terminal has polarity, the other gets opposite
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const comp of components) {
+        if (comp.componentType === 'generator' || comp.componentType === 'junction') continue;
+        const t0 = terminalId(comp.id, 0);
+        const t1 = terminalId(comp.id, 1);
+        if (polarities[t0] && !polarities[t1]) {
+          polarities[t1] = polarities[t0] === '+' ? '-' : '+';
+          changed = true;
+        } else if (polarities[t1] && !polarities[t0]) {
+          polarities[t0] = polarities[t1] === '+' ? '-' : '+';
+          changed = true;
+        }
+      }
+      // Also propagate through wires: terminals in same electrical node share polarity
+      for (const [tid, nodeId] of graph.nodeMap) {
+        if (!polarities[tid]) continue;
+        for (const [otherTid, otherNodeId] of graph.nodeMap) {
+          if (otherNodeId === nodeId && !polarities[otherTid]) {
+            polarities[otherTid] = polarities[tid];
+            changed = true;
+          }
+        }
+      }
     }
   }
 
@@ -110,10 +138,10 @@ export function solveFreeCircuit(
     const fromIdx = Number(w.fromTerminal.split(':')[1]) as 0 | 1;
     const toIdx = Number(w.toTerminal.split(':')[1]) as 0 | 1;
 
-    const x1 = fromComp.x + (fromIdx === 0 ? -45 : 45);
-    const y1 = fromComp.y;
-    const x2 = toComp.x + (toIdx === 0 ? -45 : 45);
-    const y2 = toComp.y;
+    const p1 = computeTerminalPos(fromComp, fromIdx);
+    const p2 = computeTerminalPos(toComp, toIdx);
+    const x1 = p1.x, y1 = p1.y;
+    const x2 = p2.x, y2 = p2.y;
 
     const lengthPx = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
     const lengthM = lengthPx * 0.001; // 1px = 1mm
@@ -150,7 +178,7 @@ export function computeTerminalPos(
 ): { x: number; y: number } {
   if (comp.componentType === 'junction') return { x: comp.x, y: comp.y };
   const r = ((comp.rotation || 0) % 360 + 360) % 360;
-  const half = comp.componentType === 'switch' ? 20 : 45;
+  const half = comp.componentType === 'switch' ? 28 : 40;
   const sign = index === 0 ? -1 : 1;
   if (r === 0)   return { x: comp.x + sign * half, y: comp.y };
   if (r === 90)  return { x: comp.x, y: comp.y + sign * half };

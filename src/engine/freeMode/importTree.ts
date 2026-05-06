@@ -1,7 +1,7 @@
 import type { CircuitNode, FreeComponent, FreeWire } from '../types';
 import type { WireMaterial } from '../../utils/constants';
 
-const COMP_W = 90;
+const COMP_W = 80;
 const WIRE_Y = 120;
 const GEN_X = 80;
 
@@ -33,7 +33,7 @@ export function importFromTree(
     id: genId('generator'),
     componentType: 'generator',
     x: GEN_X,
-    y: 250,
+    y: 240,
     rotation: 0,
     resistanceMultiplier: 1,
   };
@@ -54,7 +54,7 @@ export function importFromTree(
   });
 
   // Last component exit to return wire → gen terminal 0 (-)
-  const returnY = WIRE_Y + 140;
+  const returnY = WIRE_Y + 160;
   const endX = info.exitX + 40;
 
   const cornerId1 = genId('junction');
@@ -201,12 +201,12 @@ function layoutToFree(
 
     let maxWidth = 0;
     const branchInfos: LayoutInfo[] = [];
-    let branchY = y - (node.branches.length - 1) * 60;
+    let branchY = y - (node.branches.length - 1) * 80;
 
     for (const branch of node.branches) {
-      const info = layoutToFree(branch, forkX + 50, branchY, components, wires);
+      const info = layoutToFree(branch, forkX + 40, branchY, components, wires);
       branchInfos.push(info);
-      maxWidth = Math.max(maxWidth, info.exitX - forkX - 50);
+      maxWidth = Math.max(maxWidth, info.exitX - forkX - 40);
       branchY += 120;
 
       // Wire fork junction → branch entry
@@ -220,7 +220,7 @@ function layoutToFree(
       });
     }
 
-    const mergeX = forkX + 50 + maxWidth + 30;
+    const mergeX = forkX + 40 + maxWidth + 40;
     const mergeJunction: FreeComponent = {
       id: genId('junction'),
       componentType: 'junction',
@@ -243,7 +243,7 @@ function layoutToFree(
       });
     }
 
-    return { firstId: forkJunction.id, lastId: mergeJunction.id, exitX: mergeX + 50 };
+    return { firstId: forkJunction.id, lastId: mergeJunction.id, exitX: mergeX + 40 };
   }
 
   return { firstId: '', lastId: '', exitX: x };

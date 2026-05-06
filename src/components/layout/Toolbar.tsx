@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Lightbulb, ToggleLeft, RotateCcw, Zap, MousePointer2, Cable } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
@@ -159,7 +160,12 @@ function FreeModeToolbar() {
     setWireMaterial,
     setWireDiameterMm,
     setWireLineType,
+    breadboard,
+    toggleBreadboard,
   } = useFreeModeStore();
+
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [loadMsg, setLoadMsg] = useState<string | null>(null);
 
   return (
     <div className="w-60 bg-[#2d2a3e] border-r border-[#4a4560] p-3 flex flex-col gap-3 overflow-y-auto">
@@ -182,6 +188,18 @@ function FreeModeToolbar() {
             onClick={() => setActiveTool('wire')}
           />
         </div>
+      </section>
+
+      {/* Breadboard toggle */}
+      <section>
+        <button onClick={toggleBreadboard}
+          className={`w-full py-2 rounded-lg text-xs font-bold transition-colors border
+            ${breadboard
+              ? 'bg-green-700/30 text-green-400 border-green-600'
+              : 'bg-[#1e1b2e] text-[#8b83a8] border-[#4a4560] hover:bg-[#3d3a4e]'
+            }`}>
+          {breadboard ? 'Schematic View' : 'Breadboard View'}
+        </button>
       </section>
 
       {/* Component palette */}
@@ -231,17 +249,17 @@ function FreeModeToolbar() {
 
       <div className="mt-auto pt-1 flex flex-col gap-1">
         <div className="grid grid-cols-2 gap-1">
-          <button onClick={saveCircuit}
+          <button onClick={() => { saveCircuit(); setSaveMsg('Saved!'); setTimeout(() => setSaveMsg(null), 1200); }}
             className="flex items-center gap-1 px-2 py-1.5 justify-center rounded-lg
                        bg-green-900/20 text-green-400 text-[10px] font-semibold hover:bg-green-900/40
-                       transition-colors border border-green-900/30">
-            💾 {t('toolbar.save')}
+                       transition-all active:scale-95 border border-green-900/30">
+            💾 {saveMsg || t('toolbar.save')}
           </button>
-          <button onClick={() => { loadCircuit(); }}
+          <button onClick={() => { loadCircuit(); setLoadMsg('Loaded!'); setTimeout(() => setLoadMsg(null), 1200); }}
             className="flex items-center gap-1 px-2 py-1.5 justify-center rounded-lg
                        bg-blue-900/20 text-blue-400 text-[10px] font-semibold hover:bg-blue-900/40
-                       transition-colors border border-blue-900/30">
-            📂 {t('toolbar.load')}
+                       transition-all active:scale-95 border border-blue-900/30">
+            📂 {loadMsg || t('toolbar.load')}
           </button>
         </div>
         <button onClick={resetCircuit}

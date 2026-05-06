@@ -59,6 +59,8 @@ interface FreeModeStore {
   wireMaterial: WireMaterial;
   wireDiameterMm: number;
   wireLineType: 'curved' | 'straight' | 'corner';
+  breadboard: boolean;
+  toggleBreadboard: () => void;
   calculatedValues: Record<string, CalculatedValues>;
   totalResistance: number;
   totalCurrent: number;
@@ -95,6 +97,7 @@ interface FreeModeStore {
   setWireLineType: (t: 'curved' | 'straight' | 'corner') => void;
   setWireLineTypeById: (wireId: string, t: 'curved' | 'straight' | 'corner') => void;
   setWireCorners: (wireId: string, c1x: number, c1y: number, c2x: number, c2y: number) => void;
+  rewireEndpoint: (wireId: string, end: 'from' | 'to', newTerminal: string) => void;
   startWire: (from: TerminalId, mouseX: number, mouseY: number) => void;
   updateWirePreview: (mouseX: number, mouseY: number) => void;
   cancelWire: () => void;
@@ -121,6 +124,8 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
   wireMaterial: 'copper',
   wireDiameterMm: 1.0,
   wireLineType: 'straight',
+  breadboard: false,
+  toggleBreadboard: () => set((s) => ({ breadboard: !s.breadboard })),
   calculatedValues: {},
   totalResistance: Infinity,
   totalCurrent: 0,
@@ -328,6 +333,20 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
     return { wires };
   }),
 
+  rewireEndpoint: (wireId, end, newTerminal) => set((s) => {
+    const wires = s.wires.map((w) => {
+      if (w.id !== wireId) return w;
+      if (end === 'from') return { ...w, fromTerminal: newTerminal };
+      return { ...w, toTerminal: newTerminal };
+    });
+    return {
+      wires,
+      undoStack: pushStack(s.undoStack, s.components, s.wires),
+      redoStack: [],
+      ...recalc({ ...s, wires }),
+    };
+  }),
+
   startWire: (from, mouseX, mouseY) => {
     set({
       activeTool: 'wire',
@@ -520,7 +539,7 @@ export function computeTerminalPos(
 
   const r = ((comp.rotation || 0) % 360 + 360) % 360;
   const cx = comp.x, cy = comp.y;
-  const half = comp.componentType === 'switch' ? 20 : 45;
+  const half = comp.componentType === 'switch' ? 28 : 40;
   const sign = index === 0 ? -1 : 1;
   if (r === 0)   return { x: cx + sign * half, y: cy };
   if (r === 90)  return { x: cx, y: cy + sign * half };
