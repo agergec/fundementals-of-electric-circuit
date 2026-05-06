@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import type { FreeComponent, TerminalId } from '../../engine/types';
 import { getTerminalPos } from '../../store/freeModeStore';
+import { buildPointList, buildRoundedPath, type Facing } from '../../engine/freeMode/router';
 
 interface WireDrawingLayerProps {
   pendingWire: { fromTerminal: TerminalId; toX: number; toY: number } | null;
@@ -8,9 +9,15 @@ interface WireDrawingLayerProps {
   lineType: 'curved' | 'straight' | 'corner';
 }
 
+function facing(tx: number, ty: number, cx: number, cy: number): Facing {
+  if (Math.abs(tx - cx) >= Math.abs(ty - cy)) return tx < cx ? 'L' : 'R';
+  return ty < cy ? 'U' : 'D';
+}
+
 function buildPreviewPath(
   x1: number, y1: number, x2: number, y2: number,
   lineType: 'curved' | 'straight' | 'corner',
+  dir1: Facing,
 ): string {
   const dx = x2 - x1;
   const dy = y2 - y1;
@@ -21,26 +28,12 @@ function buildPreviewPath(
   }
 
   if (lineType === 'corner') {
-    const EXT = 18;
-    const r = 8;
-    const dominantH = Math.abs(dx) > Math.abs(dy);
-
-    let ex1 = x1, ey1 = y1;
-    if (dominantH) ex1 += dx > 0 ? EXT : -EXT;
-    else           ey1 += dy > 0 ? EXT : -EXT;
-
-    let ex2 = x2, ey2 = y2;
-    if (dominantH) ex2 += dx > 0 ? -EXT : EXT;
-    else           ey2 += dy > 0 ? -EXT : EXT;
-
-    if (dominantH) {
-      const s1 = dx > 0 ? ex1 - r : ex1 + r;
-      const s2 = dx > 0 ? ex2 + r : ex2 - r;
-      return `M ${x1} ${y1} L ${s1} ${y1} Q ${ex1} ${y1} ${ex1} ${ey1} L ${ex2} ${ey2} Q ${ex2} ${y2} ${s2} ${y2} L ${x2} ${y2}`;
-    }
-    const s1 = dy > 0 ? ey1 - r : ey1 + r;
-    const s2 = dy > 0 ? ey2 + r : ey2 - r;
-    return `M ${x1} ${y1} L ${x1} ${s1} Q ${x1} ${ey1} ${ex1} ${ey1} L ${ex2} ${ey2} Q ${x2} ${ey2} ${x2} ${s2} L ${x2} ${y2}`;
+    // Estimate the target facing: opposite of direction from target to source
+    const dir2: Facing = Math.abs(dx) >= Math.abs(dy)
+      ? (dx > 0 ? 'L' : 'R')
+      : (dy > 0 ? 'U' : 'D');
+    const points = buildPointList({ x: x1, y: y1 }, dir1, { x: x2, y: y2 }, dir2, []);
+    return buildRoundedPath(points);
   }
 
   const bow = Math.min(dist * 0.5, 40);
@@ -64,7 +57,12 @@ export const WireDrawingLayer = memo(function WireDrawingLayer({
   const fromPos = getTerminalPos(compId, Number(idxStr) as 0 | 1, components);
   if (!fromPos) return null;
 
-  const pathD = buildPreviewPath(fromPos.x, fromPos.y, pendingWire.toX, pendingWire.toY, lineType);
+  const srcComp = components.find(c => c.id === compId);
+  const dir1: Facing = srcComp
+    ? facing(fromPos.x, fromPos.y, srcComp.x, srcComp.y)
+    : 'R';
+
+  const pathD = buildPreviewPath(fromPos.x, fromPos.y, pendingWire.toX, pendingWire.toY, lineType, dir1);
 
   return (
     <path d={pathD} stroke="#a78bfa" strokeWidth={2} strokeDasharray="6 3"

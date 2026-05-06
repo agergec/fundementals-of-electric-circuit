@@ -14,6 +14,24 @@ interface ImportResult {
 let nextId = 1000;
 function genId(prefix: string): string { return `${prefix}-import-${nextId++}`; }
 
+/** Helper: minimal wire factory */
+function wire(
+  fromId: string, fromIdx: 0 | 1,
+  toId: string, toIdx: 0 | 1,
+  mat: WireMaterial, diam: number,
+  lt: 'curved' | 'straight' | 'corner' = 'straight',
+): FreeWire {
+  return {
+    id: genId('wire'),
+    fromTerminal: `${fromId}:${fromIdx}`,
+    toTerminal: `${toId}:${toIdx}`,
+    material: mat,
+    diameterMm: diam,
+    lineType: lt,
+    waypoints: [],
+  };
+}
+
 /**
  * Convert a structured circuit tree to free-mode components and wires.
  * Handles one level of series/parallel nesting (covers the built-in builder).
@@ -40,18 +58,10 @@ export function importFromTree(
   components.push(gen);
 
   // Layout the tree starting at COMP_START_X
-  const info = layoutToFree(tree, 160, WIRE_Y, components, wires);
+  const info = layoutToFree(tree, 160, WIRE_Y, components, wires, wireMaterial, wireDiameterMm);
 
-  // Complete the loop: generator → components → back to generator
-  // Gen terminal 1 (+) to first component entry
-  wires.push({
-    id: genId('wire'),
-    fromTerminal: `${gen.id}:1`,
-    toTerminal: `${info.firstId}:0`,
-    material: wireMaterial,
-    diameterMm: wireDiameterMm,
-    lineType: 'straight',
-  });
+  // Generator → first component
+  wires.push(wire(gen.id, 1, info.firstId, 0, wireMaterial, wireDiameterMm));
 
   // Last component exit to return wire → gen terminal 0 (-)
   const returnY = WIRE_Y + 160;
@@ -64,67 +74,10 @@ export function importFromTree(
   const corner3: FreeComponent = { id: genId('junction'), componentType: 'junction', x: GEN_X, y: returnY, rotation: 0, resistanceMultiplier: 1 };
   components.push(corner1, corner2, corner3);
 
-  wires.push({
-    id: genId('wire'),
-    fromTerminal: `${info.lastId}:1`,
-    toTerminal: `${cornerId1}:0`,
-    material: wireMaterial,
-    diameterMm: wireDiameterMm,
-    lineType: 'corner',
-  });
-  wires.push({
-    id: genId('wire'),
-    fromTerminal: `${cornerId1}:0`,
-    toTerminal: `${cornerId2}:0`,
-    material: wireMaterial,
-    diameterMm: wireDiameterMm,
-    lineType: 'straight',
-  });
-  wires.push({
-    id: genId('wire'),
-    fromTerminal: `${cornerId2}:0`,
-    toTerminal: `${corner3.id}:0`,
-    material: wireMaterial,
-    diameterMm: wireDiameterMm,
-    lineType: 'straight',
-  });
-  wires.push({
-    id: genId('wire'),
-    fromTerminal: `${corner3.id}:0`,
-    toTerminal: `${gen.id}:0`,
-    material: wireMaterial,
-    diameterMm: wireDiameterMm,
-    lineType: 'straight',
-  });
-
-  // Also connect gen top to first component top wire
-  wires.push({
-    id: genId('wire'),
-    fromTerminal: `${gen.id}:1`,
-    toTerminal: `${info.firstId}:0`,
-    material: wireMaterial,
-    diameterMm: wireDiameterMm,
-    lineType: 'straight',
-  });
-
-  // Remove duplicate gen-to-first wire (we already added one above)
-  // Actually let me keep just one. Remove the extra one.
-  const dupIdx = wires.findIndex(w => w.fromTerminal === `${gen.id}:1` && w.toTerminal === `${info.firstId}:0`);
-  if (dupIdx >= 0) {
-    // Keep the first one, remove the second
-    const secondIdx = wires.findIndex((w, i) => i > dupIdx && w.fromTerminal === `${gen.id}:1` && w.toTerminal === `${info.firstId}:0`);
-    if (secondIdx >= 0) wires.splice(secondIdx, 1);
-  }
-
-  // Gen bottom to corner (left side return)
-  wires.push({
-    id: genId('wire'),
-    fromTerminal: `${corner3.id}:0`,
-    toTerminal: `${gen.id}:0`,
-    material: wireMaterial,
-    diameterMm: wireDiameterMm,
-    lineType: 'straight',
-  });
+  wires.push(wire(info.lastId, 1, cornerId1, 0, wireMaterial, wireDiameterMm, 'corner'));
+  wires.push(wire(cornerId1, 0, cornerId2, 0, wireMaterial, wireDiameterMm));
+  wires.push(wire(cornerId2, 0, corner3.id, 0, wireMaterial, wireDiameterMm));
+  wires.push(wire(corner3.id, 0, gen.id, 0, wireMaterial, wireDiameterMm));
 
   return { components, wires, voltage };
 }
@@ -141,6 +94,8 @@ function layoutToFree(
   y: number,
   components: FreeComponent[],
   wires: FreeWire[],
+  mat: WireMaterial = 'copper',
+  diam: number = 1.0,
 ): LayoutInfo {
   if (node.kind === 'component') {
     const comp: FreeComponent = {
@@ -162,32 +117,23 @@ function layoutToFree(
     let currentX = x;
 
     for (let i = 0; i < node.children.length; i++) {
-      const info = layoutToFree(node.children[i], currentX, y, components, wires);
+      const info = layoutToFree(node.children[i], currentX, y, components, wires, mat, diam);
       if (i === 0) firstId = info.firstId;
       lastId = info.lastId;
       currentX += (info.exitX - currentX);
     }
 
-    // Connect series children: child[i].terminal1 → child[i+1].terminal0
     const seriesComponents = node.children
       .map((c) => extractComponentId(c))
-      .filter(Boolean);
+      .filter((id): id is string => id !== null);
     for (let i = 0; i < seriesComponents.length - 1; i++) {
-      wires.push({
-        id: genId('wire'),
-        fromTerminal: `${seriesComponents[i]}:1`,
-        toTerminal: `${seriesComponents[i + 1]}:0`,
-        material: 'copper',
-        diameterMm: 1.0,
-        lineType: 'straight',
-      });
+      wires.push(wire(seriesComponents[i], 1, seriesComponents[i + 1], 0, mat, diam));
     }
 
     return { firstId, lastId, exitX: currentX };
   }
 
   if (node.kind === 'parallel') {
-    // Place branches vertically, use junctions for fork/merge
     const forkX = x;
     const forkJunction: FreeComponent = {
       id: genId('junction'),
@@ -204,20 +150,12 @@ function layoutToFree(
     let branchY = y - (node.branches.length - 1) * 80;
 
     for (const branch of node.branches) {
-      const info = layoutToFree(branch, forkX + 40, branchY, components, wires);
+      const info = layoutToFree(branch, forkX + 40, branchY, components, wires, mat, diam);
       branchInfos.push(info);
       maxWidth = Math.max(maxWidth, info.exitX - forkX - 40);
       branchY += 120;
 
-      // Wire fork junction → branch entry
-      wires.push({
-        id: genId('wire'),
-        fromTerminal: `${forkJunction.id}:0`,
-        toTerminal: `${info.firstId}:0`,
-        material: 'copper',
-        diameterMm: 1.0,
-        lineType: 'corner',
-      });
+      wires.push(wire(forkJunction.id, 0, info.firstId, 0, mat, diam, 'corner'));
     }
 
     const mergeX = forkX + 40 + maxWidth + 40;
@@ -231,16 +169,8 @@ function layoutToFree(
     };
     components.push(mergeJunction);
 
-    // Wire branch exits → merge junction
     for (const info of branchInfos) {
-      wires.push({
-        id: genId('wire'),
-        fromTerminal: `${info.lastId}:1`,
-        toTerminal: `${mergeJunction.id}:0`,
-        material: 'copper',
-        diameterMm: 1.0,
-        lineType: 'corner',
-      });
+      wires.push(wire(info.lastId, 1, mergeJunction.id, 0, mat, diam, 'corner'));
     }
 
     return { firstId: forkJunction.id, lastId: mergeJunction.id, exitX: mergeX + 40 };

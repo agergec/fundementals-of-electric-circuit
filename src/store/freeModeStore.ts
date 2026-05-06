@@ -98,7 +98,9 @@ interface FreeModeStore {
   setWireDiameterMm: (d: number) => void;
   setWireLineType: (t: 'curved' | 'straight' | 'corner') => void;
   setWireLineTypeById: (wireId: string, t: 'curved' | 'straight' | 'corner') => void;
-  setWireCorners: (wireId: string, c1x: number, c1y: number, c2x: number, c2y: number) => void;
+  setWireMaterialById: (wireId: string, material: WireMaterial) => void;
+  setWireDiameterMmById: (wireId: string, d: number) => void;
+  setWireWaypoints: (wireId: string, waypoints: { x: number; y: number }[]) => void;
   rewireEndpoint: (wireId: string, end: 'from' | 'to', newTerminal: string) => void;
   startWire: (from: TerminalId, mouseX: number, mouseY: number) => void;
   updateWirePreview: (mouseX: number, mouseY: number) => void;
@@ -240,6 +242,7 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
         material: s.wireMaterial,
         diameterMm: s.wireDiameterMm,
         lineType: s.wireLineType,
+        waypoints: [],
       };
       const wires = [...s.wires, wire];
       return {
@@ -331,18 +334,37 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
     return { wires, ...recalc({ ...s, wires }) };
   }),
 
-  setWireCorners: (wireId, c1x, c1y, c2x, c2y) => set((s) => {
+  setWireMaterialById: (wireId, material) => set((s) => {
     const wires = s.wires.map((w) =>
-      w.id === wireId ? { ...w, corner1X: c1x, corner1Y: c1y, corner2X: c2x, corner2Y: c2y } : w,
+      w.id === wireId ? { ...w, material } : w,
     );
-    return { wires };
+    return { wires, ...recalc({ ...s, wires }) };
+  }),
+
+  setWireDiameterMmById: (wireId, d) => set((s) => {
+    const wires = s.wires.map((w) =>
+      w.id === wireId ? { ...w, diameterMm: d } : w,
+    );
+    return { wires, ...recalc({ ...s, wires }) };
+  }),
+
+  setWireWaypoints: (wireId, waypoints) => set((s) => {
+    const wires = s.wires.map((w) =>
+      w.id === wireId ? { ...w, waypoints } : w,
+    );
+    return {
+      wires,
+      redoStack: [],
+      ...recalc({ ...s, wires }),
+    };
   }),
 
   rewireEndpoint: (wireId, end, newTerminal) => set((s) => {
     const wires = s.wires.map((w) => {
       if (w.id !== wireId) return w;
-      if (end === 'from') return { ...w, fromTerminal: newTerminal };
-      return { ...w, toTerminal: newTerminal };
+      // Clear waypoints on rewire so the wire auto-routes to the new endpoint
+      if (end === 'from') return { ...w, fromTerminal: newTerminal, waypoints: [] };
+      return { ...w, toTerminal: newTerminal, waypoints: [] };
     });
     return {
       wires,
@@ -431,7 +453,7 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
   saveCircuit: () => {
     const s = useFreeModeStore.getState();
     const data = {
-      version: 1,
+      version: 2,
       components: s.components,
       wires: s.wires,
       voltage: s.voltage,
@@ -461,9 +483,19 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
         if (m) maxNum = Math.max(maxNum, Number(m[0]));
       }
       nextId = maxNum + 1;
+      // Migrate v1 wires (corner1/2) to v2 (waypoints[])
+      const wires = (data.wires as any[]).map((w: any) => {
+        if (w.waypoints) return w; // already v2
+        const wp: { x: number; y: number }[] = [];
+        if (w.corner1X != null && w.corner2X != null) {
+          wp.push({ x: w.corner1X, y: w.corner1Y }, { x: w.corner2X, y: w.corner2Y });
+        }
+        const { corner1X, corner1Y, corner2X, corner2Y, ...rest } = w;
+        return { ...rest, waypoints: wp, lineType: rest.lineType ?? 'straight' };
+      });
       set({
         components: data.components,
-        wires: data.wires,
+        wires,
         voltage: data.voltage ?? DEFAULT_VOLTAGE,
         wireEnabled: data.wireEnabled ?? false,
         wireMaterial: data.wireMaterial ?? 'copper',

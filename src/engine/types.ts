@@ -63,6 +63,11 @@ export interface FreeComponent {
   rotateText?: boolean;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
 export interface FreeWire {
   id: string;
   fromTerminal: TerminalId;
@@ -70,10 +75,8 @@ export interface FreeWire {
   material: import('../utils/constants').WireMaterial;
   diameterMm: number;
   lineType: 'curved' | 'straight' | 'corner';
-  corner1X?: number;
-  corner1Y?: number;
-  corner2X?: number;
-  corner2Y?: number;
+  /** Bend points between terminals. Empty = auto-routed. */
+  waypoints: Point[];
 }
 
 export type ToolType = 'select' | 'wire' | 'place-generator' | 'place-lamp' | 'place-switch' | 'place-ammeter' | 'place-voltmeter' | 'place-junction' | 'place-resistor' | 'place-fuse';

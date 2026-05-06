@@ -9,7 +9,7 @@ function fc(id: string, type: FreeComponent['componentType'], x: number, y: numb
 }
 
 function wire(from: string, to: string): FreeWire {
-  return { id: `w-${from}-${to}`, fromTerminal: from, toTerminal: to, material: 'copper', diameterMm: 1, lineType: 'straight' };
+  return { id: `w-${from}-${to}`, fromTerminal: from, toTerminal: to, material: 'copper', diameterMm: 1, lineType: 'straight', waypoints: [] };
 }
 
 describe('buildGraph', () => {

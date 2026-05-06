@@ -6,6 +6,7 @@ import { buildGraph } from './graph';
 import { reduceToCircuit } from './topology';
 import { solveMNA } from './mna';
 import { WIRE_MATERIALS } from '../../utils/constants';
+import { buildPointList, pathLength, computeFacing } from './router';
 
 
 
@@ -153,10 +154,16 @@ export function solveFreeCircuit(
 
     const p1 = computeTerminalPos(fromComp, fromIdx);
     const p2 = computeTerminalPos(toComp, toIdx);
-    const x1 = p1.x, y1 = p1.y;
-    const x2 = p2.x, y2 = p2.y;
 
-    const lengthPx = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+    let lengthPx: number;
+    if (w.lineType === 'corner') {
+      const dir1 = computeFacing(p1.x, p1.y, fromComp.x, fromComp.y);
+      const dir2 = computeFacing(p2.x, p2.y, toComp.x, toComp.y);
+      const points = buildPointList(p1, dir1, p2, dir2, w.waypoints);
+      lengthPx = pathLength(points);
+    } else {
+      lengthPx = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
+    }
     const lengthM = lengthPx * 0.001; // 1px = 1mm
 
     const resistivity = WIRE_MATERIALS[w.material]?.resistivity ?? WIRE_MATERIALS.copper.resistivity;

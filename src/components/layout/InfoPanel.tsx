@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useCircuitStore } from '../../store/circuitStore';
 import { useFreeModeStore } from '../../store/freeModeStore';
 import { useModeStore } from '../../store/modeStore';
-import { BASE_RESISTANCE, RESISTANCE_OPTIONS } from '../../utils/constants';
+import { BASE_RESISTANCE, RESISTANCE_OPTIONS, WIRE_MATERIALS } from '../../utils/constants';
+import type { WireMaterial } from '../../utils/constants';
 import { formatVoltage, formatCurrent, formatResistance } from '../../utils/formatters';
 import type { CircuitNode, ComponentNode } from '../../engine/types';
 
@@ -85,6 +86,8 @@ function FreeModeInfoPanel() {
     setFuseRating,
     resetFuse,
     setWireLineTypeById,
+    setWireMaterialById,
+    setWireDiameterMmById,
     selectedWireId,
   } = useFreeModeStore();
 
@@ -108,8 +111,37 @@ function FreeModeInfoPanel() {
         </div>
         <div className="bg-[#1e1b2e] rounded-lg p-2 mb-3 text-xs text-[#8b83a8]">
           <p>{fc?.componentType} ↔ {tc?.componentType}</p>
-          <p className="mt-1">Material: <span className="text-purple-300">{t(`toolbar.${wire.material}`)}</span></p>
-          <p>{t('toolbar.diameter')}: {wire.diameterMm.toFixed(1)} mm</p>
+
+          {/* Material dropdown */}
+          <div className="mt-2 flex items-center gap-2">
+            <label className="text-[10px] text-[#6b6580] uppercase w-14 shrink-0">{t('toolbar.material')}</label>
+            <select
+              value={wire.material}
+              onChange={(e) => setWireMaterialById(selectedWireId, e.target.value as WireMaterial)}
+              className="flex-1 bg-[#2d2a3e] text-purple-300 text-[11px] rounded px-2 py-1 border border-[#4a4560]
+                         focus:outline-none focus:border-purple-500 appearance-none cursor-pointer"
+            >
+              {(Object.keys(WIRE_MATERIALS) as WireMaterial[]).map((mat) => (
+                <option key={mat} value={mat}>{t(`toolbar.${mat}`)}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Diameter selector */}
+          <div className="mt-2 flex items-center gap-2">
+            <label className="text-[10px] text-[#6b6580] uppercase w-14 shrink-0">{t('toolbar.diameter')}</label>
+            <select
+              value={wire.diameterMm}
+              onChange={(e) => setWireDiameterMmById(selectedWireId, Number(e.target.value))}
+              className="flex-1 bg-[#2d2a3e] text-purple-300 text-[11px] rounded px-2 py-1 border border-[#4a4560]
+                         focus:outline-none focus:border-purple-500 appearance-none cursor-pointer"
+            >
+              {[0.5, 0.8, 1.0, 1.5, 2.0, 2.5].map((d) => (
+                <option key={d} value={d}>{d.toFixed(1)} mm</option>
+              ))}
+            </select>
+          </div>
+
           <div className="mt-2">
             <div className="text-[10px] text-[#6b6580] uppercase mb-1">{t('toolbar.wireStyle')}</div>
             <div className="grid grid-cols-3 gap-1">

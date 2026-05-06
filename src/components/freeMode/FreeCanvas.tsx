@@ -81,7 +81,7 @@ export function FreeCanvas() {
     setActiveTool,
     selectComponent,
     selectWire,
-    setWireCorners,
+    setWireWaypoints,
     rewireEndpoint,
     toggleSwitch,
     startWire,
@@ -106,6 +106,7 @@ export function FreeCanvas() {
   const compDrag = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null);
   // Endpoint drag for rewiring
   const endpointDrag = useRef<{ wireId: string; end: 'from' | 'to' } | null>(null);
+  const [floatingEndpoint, setFloatingEndpoint] = useState<{ wireId: string; end: 'from' | 'to'; x: number; y: number } | null>(null);
   // Terminal hover highlight
   const [highlightComp, setHighlightComp] = useState<{ compId: string; index: 0 | 1 } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -194,12 +195,14 @@ export function FreeCanvas() {
       }
     }
 
-    // Wire preview + terminal highlight
-    if (pendingWire) {
+    // Wire preview / endpoint drag + terminal highlight
+    if (pendingWire || endpointDrag.current) {
       const rect = svg.getBoundingClientRect();
       const c = toCanvas(e.clientX, e.clientY, rect, view);
-      updateWirePreview(c.x, c.y);
-      // Highlight nearest terminal
+      if (pendingWire) updateWirePreview(c.x, c.y);
+      if (endpointDrag.current) {
+        setFloatingEndpoint(prev => prev ? { ...prev, x: c.x, y: c.y } : null);
+      }
       const nearest = findClosestTerminal(c.x, c.y, components);
       setHighlightComp(nearest);
     } else {
@@ -221,6 +224,7 @@ export function FreeCanvas() {
         }
       }
       endpointDrag.current = null;
+      setFloatingEndpoint(null);
       return;
     }
 
@@ -312,7 +316,12 @@ export function FreeCanvas() {
 
   const handleEndpointDrag = (wireId: string, end: 'from' | 'to', e: React.MouseEvent) => {
     e.stopPropagation();
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const c = toCanvas(e.clientX, e.clientY, rect, view);
     endpointDrag.current = { wireId, end };
+    setFloatingEndpoint({ wireId, end, x: c.x, y: c.y });
   };
 
   // ── Wire interaction ──
@@ -511,16 +520,14 @@ export function FreeCanvas() {
                 components={components}
                 current={totalCurrent}
                 isSelected={selectedWireId === w.id}
+                isDetached={floatingEndpoint?.wireId === w.id}
                 strokeWidth={wireStrokeWidth}
                 wireResistance={wireResistances[w.id]}
                 lineType={w.lineType || 'straight'}
-                corner1X={w.corner1X}
-                corner1Y={w.corner1Y}
-                corner2X={w.corner2X}
-                corner2Y={w.corner2Y}
+                waypoints={w.waypoints || []}
                 isWiring={isWiring}
-                onCornersDrag={setWireCorners}
-                onEndpointDrag={handleEndpointDrag}
+                onWaypointsDrag={setWireWaypoints}
+                onWaypointsDragStart={pushHistory}
                 showResistance={wireEnabled}
                 onClick={handleWireClick}
               />
@@ -548,6 +555,55 @@ export function FreeCanvas() {
                 highlightTerminal={getHighlightFor(comp.id)}
               />
             ))}
+
+            {/* Endpoint drag handles — rendered on top of everything so they catch mousedown
+                before component terminal dots */}
+            {selectedWireId && !isWiring && (() => {
+              const sw = wires.find(w => w.id === selectedWireId);
+              if (!sw) return null;
+              const [fcId] = sw.fromTerminal.split(':');
+              const [tcId] = sw.toTerminal.split(':');
+              const fp = getTerminalPos(fcId, Number(sw.fromTerminal.split(':')[1]) as 0 | 1, components);
+              const tp = getTerminalPos(tcId, Number(sw.toTerminal.split(':')[1]) as 0 | 1, components);
+              return (
+                <>
+                  {fp && (
+                    <>
+                      <circle cx={fp.x} cy={fp.y} r={7} fill="#22c55e" stroke="#4ade80" strokeWidth={1.5} opacity={0.8}
+                        style={{ pointerEvents: 'none' }} />
+                      <circle cx={fp.x} cy={fp.y} r={14} fill="transparent" style={{ cursor: 'grab' }}
+                        onMouseDown={(e) => { e.stopPropagation(); handleEndpointDrag(selectedWireId, 'from', e); }} />
+                    </>
+                  )}
+                  {tp && (
+                    <>
+                      <circle cx={tp.x} cy={tp.y} r={7} fill="#22c55e" stroke="#4ade80" strokeWidth={1.5} opacity={0.8}
+                        style={{ pointerEvents: 'none' }} />
+                      <circle cx={tp.x} cy={tp.y} r={14} fill="transparent" style={{ cursor: 'grab' }}
+                        onMouseDown={(e) => { e.stopPropagation(); handleEndpointDrag(selectedWireId, 'to', e); }} />
+                    </>
+                  )}
+                </>
+              );
+            })()}
+
+            {/* Floating wire — shown during endpoint drag, the wire end follows the mouse */}
+            {floatingEndpoint && (() => {
+              const sw = wires.find(w => w.id === floatingEndpoint.wireId);
+              if (!sw) return null;
+              const anchoredEnd = floatingEndpoint.end === 'from' ? 'to' : 'from';
+              const anchoredTid = anchoredEnd === 'from' ? sw.fromTerminal : sw.toTerminal;
+              const [acId] = anchoredTid.split(':');
+              const ap = getTerminalPos(acId, Number(anchoredTid.split(':')[1]) as 0 | 1, components);
+              if (!ap) return null;
+              return (
+                <path
+                  d={`M ${ap.x} ${ap.y} L ${floatingEndpoint.x} ${floatingEndpoint.y}`}
+                  stroke="#a78bfa" strokeWidth={2} strokeDasharray="6 3"
+                  strokeLinecap="round" fill="none" pointerEvents="none"
+                />
+              );
+            })()}
           </g>
         </svg>
 
