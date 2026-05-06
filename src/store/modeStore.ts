@@ -8,6 +8,6 @@ interface ModeStore {
 }
 
 export const useModeStore = create<ModeStore>((set) => ({
-  mode: 'structured',
+  mode: 'free',
   setMode: (mode) => set({ mode }),
 }));

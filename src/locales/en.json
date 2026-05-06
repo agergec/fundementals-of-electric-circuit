@@ -89,7 +89,9 @@
     "wireInfoVoltageDrop": "Voltage drop",
     "wireInfoExplain": "In a real circuit, wires have resistance that depends on material, length, and diameter. Longer or thinner wires have higher resistance — reducing the voltage available to the components.",
     "fuseBlown": "Fuse Blown!",
-    "fuseBlownDetail": "The fuse has blown because the current exceeded its rating. It is now an open circuit. Click Reset Fuse to restore it."
+    "fuseBlownDetail": "The fuse has blown because the current exceeded its rating. It is now an open circuit. Click Reset Fuse to restore it.",
+    "generatorsParallel": "Conflicting Generators!",
+    "generatorsParallelDetail": "Two generators with different voltages are directly in parallel. This creates a short circuit between them — infinite current would flow. Connect them in different branches or use the same voltage."
   },
   "freeMode": {
     "tool": "Tool",

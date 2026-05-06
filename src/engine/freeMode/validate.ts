@@ -37,6 +37,33 @@ export function validateCircuit(
 
   const { edges } = graph;
 
+  // ── Parallel generators with different voltages ──
+  if (graph.generators.length >= 2) {
+    for (let i = 0; i < graph.generators.length; i++) {
+      for (let j = i + 1; j < graph.generators.length; j++) {
+        const ga = graph.generators[i];
+        const gb = graph.generators[j];
+        // Same pos AND neg nodes = directly in parallel
+        const sameNodes =
+          (ga.pos === gb.pos && ga.neg === gb.neg) ||
+          (ga.pos === gb.neg && ga.neg === gb.pos);
+        if (!sameNodes) continue;
+        const va = components.find(c => c.id === ga.id)?.voltage ?? voltage;
+        const vb = components.find(c => c.id === gb.id)?.voltage ?? voltage;
+        if (Math.abs(va - vb) > 0.01) {
+          errorIds.add(ga.id);
+          errorIds.add(gb.id);
+          issues.push({
+            level: 'error',
+            key: 'circuit.generatorsParallel',
+            detailKey: 'circuit.generatorsParallelDetail',
+            ids: [ga.id, gb.id],
+          });
+        }
+      }
+    }
+  }
+
   // ── Ammeter in parallel ──
   // An ammeter (0Ω) in parallel with any other component creates a short through that branch
   for (const edge of edges) {

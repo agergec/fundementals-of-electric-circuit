@@ -538,7 +538,10 @@ function recalc(
     'components' | 'wires' | 'voltage' | 'wireEnabled' | 'wireMaterial' | 'wireDiameterMm'
   >,
 ): Partial<FreeModeStore> {
-  return recalcRaw(s.components, s.wires, s.voltage, s.wireEnabled);
+  // Use single generator's actual voltage, fall back to global voltage
+  const gens = s.components.filter(c => c.componentType === 'generator');
+  const voltage = gens.length === 1 ? (gens[0].voltage ?? s.voltage) : s.voltage;
+  return recalcRaw(s.components, s.wires, voltage, s.wireEnabled);
 }
 
 function recalcRaw(

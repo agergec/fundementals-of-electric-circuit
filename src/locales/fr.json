@@ -89,7 +89,9 @@
     "wireInfoVoltageDrop": "Chute de tension",
     "wireInfoExplain": "Dans un circuit réel, les fils ont une résistance qui dépend du matériau, de la longueur et du diamètre. Plus le fil est long ou fin, plus sa résistance est élevée — et plus la tension disponible pour les composants est réduite.",
     "fuseBlown": "Fusible grillé !",
-    "fuseBlownDetail": "Le fusible a grillé car le courant a dépassé son calibre. Il est maintenant un circuit ouvert. Clique sur Réarmer pour le restaurer."
+    "fuseBlownDetail": "Le fusible a grillé car le courant a dépassé son calibre. Il est maintenant un circuit ouvert. Clique sur Réarmer pour le restaurer.",
+    "generatorsParallel": "Générateurs en conflit !",
+    "generatorsParallelDetail": "Deux générateurs avec des tensions différentes sont directement en parallèle. Cela crée un court-circuit entre eux — un courant infini circulerait. Branche-les dans des branches différentes ou utilise la même tension."
   },
   "freeMode": {
     "tool": "Outil",
