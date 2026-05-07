@@ -10,6 +10,7 @@ import { HelpModal } from './HelpModal';
 import { TutorialOverlay } from './TutorialOverlay';
 import { ErrorBoundary } from './ErrorBoundary';
 import { PIXEL_TO_METERS } from '../../utils/constants';
+import { computeFacing, buildPointList } from '../../engine/freeMode/router';
 import type { FreeComponent as FreeComponentT } from '../../engine/types';
 
 const SNAP = 40;
@@ -136,6 +137,7 @@ export function FreeCanvas() {
     errorIds,
     pendingWire,
     placeComponent,
+    insertComponentOnWire,
     removeComponent,
     moveComponent,
     addWire,
@@ -396,20 +398,70 @@ export function FreeCanvas() {
 
   // ── Drag from toolbar ──
 
+  // Point-to-segment distance
+  function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq < 0.01) return Math.hypot(px - ax, py - ay);
+    let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  }
+
+  /** Find the closest wire to a canvas point, within threshold. */
+  function findWireNearPoint(cx: number, cy: number, threshold = 16): string | null {
+    let bestId: string | null = null;
+    let bestDist = threshold;
+    for (const w of wires) {
+      const [fcId] = w.fromTerminal.split(':');
+      const [tcId] = w.toTerminal.split(':');
+      const fp = getTerminalPos(fcId, Number(w.fromTerminal.split(':')[1]) as 0 | 1, components);
+      const tp = getTerminalPos(tcId, Number(w.toTerminal.split(':')[1]) as 0 | 1, components);
+      if (!fp || !tp) continue;
+      const fc = components.find(c => c.id === fcId);
+      const tc = components.find(c => c.id === tcId);
+      const d1 = fc ? computeFacing(fp.x, fp.y, fc.x, fc.y) : 'R';
+      const d2 = tc ? computeFacing(tp.x, tp.y, tc.x, tc.y) : 'L';
+      const pts = buildPointList(fp, d1, tp, d2, w.waypoints || []);
+      for (let i = 1; i < pts.length; i++) {
+        const d = distToSegment(cx, cy, pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y);
+        if (d < bestDist) { bestDist = d; bestId = w.id; }
+      }
+    }
+    return bestId;
+  }
+
+  const [dragOverWire, setDragOverWire] = useState<string | null>(null);
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const c = toCanvas(e.clientX, e.clientY, rect, view);
+    const hit = findWireNearPoint(c.x, c.y);
+    setDragOverWire(hit);
   };
+
+  const handleDragLeave = () => setDragOverWire(null);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setDragOverWire(null);
     const compType = e.dataTransfer.getData('component-type') as FreeComponentT['componentType'];
     if (!compType) return;
     const svg = svgRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     const c = toCanvas(e.clientX, e.clientY, rect, view);
-    placeComponent(compType, snap(c.x), snap(c.y));
+    const sx = snap(c.x), sy = snap(c.y);
+    const hit = findWireNearPoint(c.x, c.y);
+    if (hit) {
+      insertComponentOnWire(compType, sx, sy, hit);
+    } else {
+      placeComponent(compType, sx, sy);
+    }
   };
 
   // ── Keyboard shortcuts ──
@@ -548,6 +600,7 @@ export function FreeCanvas() {
       {/* SVG Canvas */}
       <div className="flex-1 relative overflow-hidden"
         onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         <svg
@@ -586,7 +639,7 @@ export function FreeCanvas() {
                 toTerminal={w.toTerminal}
                 components={components}
                 current={totalCurrent}
-                isSelected={selectedWireId === w.id}
+                isSelected={selectedWireId === w.id || dragOverWire === w.id}
                 isDetached={floatingEndpoint?.wireId === w.id}
                 strokeWidth={wireStrokeWidth}
                 wireResistance={wireResistances[w.id]}

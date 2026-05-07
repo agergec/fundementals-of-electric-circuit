@@ -85,6 +85,7 @@ interface FreeModeStore {
 
   // Actions
   placeComponent: (type: FreeComponent['componentType'], x: number, y: number) => void;
+  insertComponentOnWire: (type: FreeComponent['componentType'], x: number, y: number, wireId: string) => void;
   removeComponent: (id: string) => void;
   moveComponent: (id: string, x: number, y: number) => void;
   addWire: (from: TerminalId, to: TerminalId) => void;
@@ -196,6 +197,43 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
         undoStack: pushStack(s.undoStack, s.components, s.wires),
         redoStack: [],
         ...recalc({ ...s, components }),
+      };
+    });
+  },
+
+  insertComponentOnWire: (type, x, y, wireId) => {
+    const comp = makeComponent(type, x, y);
+    set((s) => {
+      const splitWire = s.wires.find(w => w.id === wireId);
+      if (!splitWire) return {};
+      const wires = s.wires.filter(w => w.id !== wireId);
+      // Create two new wires connecting through the new component
+      const wireA: FreeWire = {
+        id: genId('wire'),
+        fromTerminal: splitWire.fromTerminal,
+        toTerminal: terminalId(comp.id, 0),
+        material: splitWire.material,
+        diameterMm: splitWire.diameterMm,
+        lineType: splitWire.lineType,
+        waypoints: [],
+      };
+      const wireB: FreeWire = {
+        id: genId('wire'),
+        fromTerminal: terminalId(comp.id, comp.componentType === 'junction' ? 0 : 1),
+        toTerminal: splitWire.toTerminal,
+        material: splitWire.material,
+        diameterMm: splitWire.diameterMm,
+        lineType: splitWire.lineType,
+        waypoints: [],
+      };
+      const components = [...s.components, comp];
+      wires.push(wireA, wireB);
+      return {
+        components,
+        wires,
+        undoStack: pushStack(s.undoStack, s.components, s.wires),
+        redoStack: [],
+        ...recalc({ ...s, components, wires }),
       };
     });
   },
