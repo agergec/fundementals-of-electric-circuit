@@ -113,14 +113,16 @@
     "tooComplex": "Ce circuit est trop complexe pour l'analyse automatique. Essaie de simplifier tes connexions."
   },
   "tutorial": {
-    "step1Title": "Bienvenue sur CircuitLab !",
-    "step1Body": "Commence par cliquer sur Générateur (G) dans la barre d'outils, puis clique sur le canevas pour le placer. C'est ta source d'énergie.",
-    "step2Title": "Choisis ton style de fil",
-    "step2Body": "Choisis Droit, Courbé ou Angle dans la barre d'outils. Le mode Angle donne un routage orthogonal net qui s'aligne sur la grille.",
-    "step3Title": "Connecte ton circuit",
-    "step3Body": "Sélectionne l'outil Fil, puis clique sur les points colorés de deux composants pour les connecter. Points verts = extrémités, violets = coudes ajustables.",
-    "step4Title": "Tu es prêt !",
-    "step4Body": "Appuie sur ? pour l'aide complète à tout moment. Déplace les composants, ajuste les tensions, essaie le mode Défi, ou exporte ton circuit en PNG. Amuse-toi !"
+    "step1Title": "1. Place un Générateur",
+    "step1Body": "Le chip Générateur est en surbrillance. Clique dessus, puis clique sur le canevas pour placer ta source d'énergie.",
+    "step2Title": "2. Ajoute une Lampe",
+    "step2Body": "Clique sur le chip Lampe, puis sur le canevas pour placer une ampoule.",
+    "step3Title": "3. Connecte avec un Fil",
+    "step3Body": "L'outil Fil est sélectionné. Clique sur le point du Générateur, puis sur celui de la Lampe. Un fil apparaîtra !",
+    "step4Title": "4. Passe en Style Angle",
+    "step4Body": "Sélectionne le fil en cliquant dessus, puis change son style sur 'Angle' ici. Les fils en angle utilisent un routage orthogonal net.",
+    "step5Title": "5. Tu es Prêt !",
+    "step5Body": "Ton premier circuit est complet ! Déplace les composants, appuie sur ? pour l'aide, ou essaie le mode Défi. Amuse-toi !"
   },
   "help": {
     "title": "Aide CircuitLab",

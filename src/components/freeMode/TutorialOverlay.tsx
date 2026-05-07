@@ -1,173 +1,146 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFreeModeStore } from '../../store/freeModeStore';
 
 const STORAGE_KEY = 'circuitlab-tutorial-done';
 
-interface Step {
-  target: string;
-  titleKey: string;
-  bodyKey: string;
-  /** If true, waits for this condition in the store before allowing Next */
-  waitFor?: () => boolean;
-}
+const STEPS = [
+  { target: 'toolbar-generator', titleKey: 'tutorial.step1Title', bodyKey: 'tutorial.step1Body' },
+  { target: 'toolbar-lamp', titleKey: 'tutorial.step2Title', bodyKey: 'tutorial.step2Body' },
+  { target: 'toolbar-wire', titleKey: 'tutorial.step3Title', bodyKey: 'tutorial.step3Body' },
+  { target: 'toolbar-corner', titleKey: 'tutorial.step4Title', bodyKey: 'tutorial.step4Body' },
+  { target: 'canvas-spot', titleKey: 'tutorial.step5Title', bodyKey: 'tutorial.step5Body' },
+];
 
 export function TutorialOverlay() {
   const { t } = useTranslation();
   const components = useFreeModeStore(s => s.components);
   const wires = useFreeModeStore(s => s.wires);
+  const setActiveTool = useFreeModeStore(s => s.setActiveTool);
+  const setWireLineType = useFreeModeStore(s => s.setWireLineType);
+
   const [done, setDone] = useState(() => localStorage.getItem(STORAGE_KEY) === '1');
   const [step, setStep] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
-  const frameRef = useRef<number>(0);
+  const timerRef = useRef(0);
 
-  const steps: Step[] = [
-    {
-      target: 'toolbar-generator',
-      titleKey: 'tutorial.step1Title',
-      bodyKey: 'tutorial.step1Body',
-    },
-    {
-      target: 'toolbar-lamp',
-      titleKey: 'tutorial.step2Title',
-      bodyKey: 'tutorial.step2Body',
-    },
-    {
-      target: 'toolbar-wire',
-      titleKey: 'tutorial.step3Title',
-      bodyKey: 'tutorial.step3Body',
-    },
-    {
-      target: 'canvas',
-      titleKey: 'tutorial.step4Title',
-      bodyKey: 'tutorial.step4Body',
-    },
-  ];
-
-  // Auto-select tools based on step
-  const setActiveTool = useFreeModeStore(s => s.setActiveTool);
-
-  // Auto-advance when user completes the current step's action
+  // Auto-select tool and auto-advance
   useEffect(() => {
     if (done) return;
-    const gens = components.filter(c => c.componentType === 'generator');
-    const lamps = components.filter(c => c.componentType === 'lamp');
+    const genCount = components.filter(c => c.componentType === 'generator').length;
+    const lampCount = components.filter(c => c.componentType === 'lamp').length;
+    const hasCorner = wires.some(w => w.lineType === 'corner');
 
     if (step === 0) {
       setActiveTool('place-generator');
-      if (gens.length > 0) setStep(1);
-    }
-    if (step === 1) {
+      if (genCount > 0) setStep(1);
+    } else if (step === 1) {
       setActiveTool('place-lamp');
-      if (lamps.length > 0) setStep(2);
-    }
-    if (step === 2) {
+      if (lampCount > 0) setStep(2);
+    } else if (step === 2) {
       setActiveTool('wire');
       if (wires.length > 0) setStep(3);
-    }
-    if (step === 3) {
+    } else if (step === 3) {
+      setActiveTool('select');
+      setWireLineType('corner');
+      if (hasCorner) setStep(4);
+    } else {
       setActiveTool('select');
     }
-  }, [components, wires, step, done, setActiveTool]);
+  }, [components, wires, step, done, setActiveTool, setWireLineType]);
 
   // Track target element position
-  const updateTargetRect = useCallback(() => {
+  useEffect(() => {
     if (done) return;
-    const s = steps[step];
-    const el = document.querySelector(`[data-tour="${s.target}"]`);
-    if (el) {
-      setTargetRect(el.getBoundingClientRect());
-    } else {
-      setTargetRect(null);
-    }
+
+    const track = () => {
+      const el = document.querySelector(`[data-tour="${STEPS[step].target}"]`);
+      if (el) {
+        setTargetRect(el.getBoundingClientRect());
+      } else {
+        // Fallback for canvas targets: center of canvas
+        setTargetRect(DOMRect.fromRect({
+          x: window.innerWidth * 0.4, y: window.innerHeight * 0.25,
+          width: window.innerWidth * 0.35, height: window.innerHeight * 0.45,
+        }));
+      }
+    };
+
+    track();
+    window.addEventListener('resize', track);
+    timerRef.current = window.setInterval(track, 200) as unknown as number;
+    return () => {
+      window.removeEventListener('resize', track);
+      clearInterval(timerRef.current);
+    };
   }, [step, done]);
 
-  useEffect(() => {
-    updateTargetRect();
-    const onResize = () => updateTargetRect();
-    window.addEventListener('resize', onResize);
-    frameRef.current = window.setInterval(updateTargetRect, 300) as unknown as number;
-    return () => {
-      window.removeEventListener('resize', onResize);
-      clearInterval(frameRef.current);
-    };
-  }, [updateTargetRect]);
-
+  // Persist done
   useEffect(() => {
     if (done) localStorage.setItem(STORAGE_KEY, '1');
   }, [done]);
 
   if (done) return null;
 
-  const s = steps[step];
-  const isLast = step === steps.length - 1;
+  const s = STEPS[step];
+  const isLast = step === STEPS.length - 1;
 
-  const handleNext = () => {
-    if (isLast) setDone(true);
-    else setStep(step + 1);
-  };
-  const handleSkip = () => setDone(true);
-
-  // Spotlight ring around target
-  const spotlight = targetRect ? {
-    left: targetRect.left - 6,
-    top: targetRect.top - 6,
-    width: targetRect.width + 12,
-    height: targetRect.height + 12,
-    bottom: targetRect.bottom + 6,
-  } : null;
+  // Card positioning: if target is in toolbar, card goes to its right
+  const isToolbarTarget = targetRect && targetRect.left < 280;
+  const cardStyle = targetRect ? (isToolbarTarget ? {
+    left: targetRect.right + 24,
+    top: Math.max(80, targetRect.top - 40),
+  } : {
+    left: Math.max(280, Math.min(targetRect.left + targetRect.width / 2 - 190, window.innerWidth - 400)),
+    top: targetRect.bottom > window.innerHeight / 2
+      ? targetRect.top - 230
+      : targetRect.bottom + 16,
+  }) : { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* Backdrop with a "hole" cut for the spotlight */}
+      {/* Backdrop with spotlight hole */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none" width="100%" height="100%">
         <defs>
-          <mask id="tutorial-mask">
+          <mask id="tut-mask">
             <rect width="100%" height="100%" fill="white" />
-            {spotlight && (
-              <rect x={spotlight.left} y={spotlight.top} width={spotlight.width}
-                height={spotlight.height} rx="8" fill="black" />
+            {targetRect && (
+              <rect x={targetRect.left - 6} y={targetRect.top - 6}
+                width={targetRect.width + 12} height={targetRect.height + 12}
+                rx="8" fill="black" />
             )}
           </mask>
         </defs>
-        <rect width="100%" height="100%" fill="rgba(0,0,0,0.55)" mask="url(#tutorial-mask)" />
-        {spotlight && (
-          <rect x={spotlight.left} y={spotlight.top} width={spotlight.width}
-            height={spotlight.height} rx="8" fill="none" stroke="#a78bfa" strokeWidth={2.5}
-            strokeDasharray="8 4" opacity={0.8}>
+        <rect width="100%" height="100%" fill="rgba(0,0,0,0.5)" mask="url(#tut-mask)" />
+        {targetRect && (
+          <rect x={targetRect.left - 6} y={targetRect.top - 6}
+            width={targetRect.width + 12} height={targetRect.height + 12}
+            rx="8" fill="none" stroke="#a78bfa" strokeWidth={2.5}
+            strokeDasharray="8 4" opacity={0.9}>
             <animate attributeName="stroke-dashoffset" from="0" to="24" dur="1s" repeatCount="indefinite" />
           </rect>
         )}
       </svg>
 
       {/* Instruction card */}
-      <div className="absolute pointer-events-auto"
-        style={spotlight ? {
-          left: Math.max(280, Math.min(spotlight.left + spotlight.width / 2 - 190, window.innerWidth - 400)),
-          top: spotlight.bottom > window.innerHeight / 2
-            ? spotlight.top - 220
-            : spotlight.bottom + 16,
-        } : { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-        <div className="bg-[#2d2a3e] border border-purple-500/40 rounded-2xl shadow-2xl w-[380px] p-5">
-          {/* Step dots */}
+      <div className="absolute pointer-events-auto" style={cardStyle}>
+        <div className="bg-[#2d2a3e] border border-purple-500/40 rounded-2xl shadow-2xl w-[360px] p-5">
           <div className="flex gap-1.5 mb-3">
-            {steps.map((_, i) => (
+            {STEPS.map((_, i) => (
               <div key={i} className={`h-1.5 rounded-full flex-1 transition-colors duration-300 ${
                 i <= step ? 'bg-purple-500' : 'bg-[#4a4560]'
               }`} />
             ))}
           </div>
-
           <h3 className="text-base font-bold text-purple-300 mb-1.5">{t(s.titleKey)}</h3>
           <p className="text-xs text-[#9ca3af] leading-relaxed mb-4">{t(s.bodyKey)}</p>
-
           <div className="flex gap-2">
-            <button onClick={handleSkip}
+            <button onClick={() => setDone(true)}
               className="px-3 py-1.5 rounded-lg text-[10px] text-[#6b6580] hover:text-white transition-colors">
               Skip
             </button>
             <div className="flex-1" />
-            <button onClick={handleNext}
+            <button onClick={() => isLast ? setDone(true) : setStep(s => s + 1)}
               className="px-4 py-1.5 rounded-lg bg-purple-700 text-white text-xs font-bold
                          hover:bg-purple-600 transition-colors">
               {isLast ? 'Got it!' : 'Next'}

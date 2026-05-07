@@ -243,6 +243,7 @@ function FreeModeToolbar() {
         <div className="grid grid-cols-3 gap-1">
           {(['curved', 'straight', 'corner'] as const).map((lt) => (
             <button key={lt} onClick={() => setWireLineType(lt)}
+              data-tour={lt === 'corner' ? 'toolbar-corner' : undefined}
               className={`py-1 rounded text-[10px] font-bold transition-colors
                 ${wireLineType === lt ? 'bg-purple-700 text-white' : 'bg-[#1e1b2e] text-[#8b83a8] hover:bg-[#3d3a4e]'}`}>
               {t(`toolbar.${lt}`)}

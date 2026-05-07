@@ -74,16 +74,8 @@ export function routeOrthogonal(
     // Both horizontal
     const sameRow = Math.abs(e1.y - e2.y) < 2;
     if (sameRow) {
-      const facingEachOther =
-        (d1 === 'R' && d2 === 'L' && e1.x <= e2.x + 4) ||
-        (d1 === 'L' && d2 === 'R' && e2.x <= e1.x + 4);
-      if (facingEachOther) {
-        // Straight through: terminals and jetties align
-        const all = cleanupCollinear([t1, e1, e2, t2]);
-        return all.slice(1, all.length - 1);
-      }
-      // Same row, facing away — detour above
-      const detourY = Math.min(e1.y, e2.y) - 40;
+      // Always use a right-angle detour for same-row connections
+      const detourY = Math.min(e1.y, e2.y) - 30;
       return [
         { x: e1.x, y: detourY },
         { x: e2.x, y: detourY },
@@ -100,14 +92,8 @@ export function routeOrthogonal(
   // Both vertical
   const sameCol = Math.abs(e1.x - e2.x) < 2;
   if (sameCol) {
-    const facingEachOther =
-      (d1 === 'D' && d2 === 'U' && e1.y <= e2.y + 4) ||
-      (d1 === 'U' && d2 === 'D' && e2.y <= e1.y + 4);
-    if (facingEachOther) {
-      const all = cleanupCollinear([t1, e1, e2, t2]);
-      return all.slice(1, all.length - 1);
-    }
-    const detourX = Math.min(e1.x, e2.x) - 40;
+    // Always use a right-angle detour for same-column connections
+    const detourX = Math.min(e1.x, e2.x) - 30;
     return [
       { x: detourX, y: e1.y },
       { x: detourX, y: e2.y },

@@ -26,12 +26,13 @@ describe('computeFacing', () => {
 });
 
 describe('routeOrthogonal', () => {
-  it('returns empty array for straight-through (facing each other, same row)', () => {
+  it('returns detour C-shape for same-row opposite-facing (always right-angle)', () => {
     // Terminal 1 at (120,100) exits RIGHT. Terminal 2 at (200,100) exits LEFT.
     const wp = routeOrthogonal({ x: 120, y: 100 }, 'R', { x: 200, y: 100 }, 'L');
-    // After cleanup: t1(120), e1(140), e2(180), t2(200) — all collinear on same y
-    // Collinear cleanup removes e1 and e2, leaving only terminals → no waypoints
-    expect(wp).toHaveLength(0);
+    // Same row: creates detour above. e1=(140,100), e2=(180,100), detourY=70
+    expect(wp).toHaveLength(2);
+    expect(wp[0]).toEqual({ x: 140, y: 70 });
+    expect(wp[1]).toEqual({ x: 180, y: 70 });
   });
 
   it('returns L-shape (1 bend) for mixed axes', () => {
@@ -71,17 +72,19 @@ describe('routeOrthogonal', () => {
     // t1 right of t2, both exiting away from each other
     const wp = routeOrthogonal({ x: 200, y: 100 }, 'R', { x: 100, y: 100 }, 'L');
     expect(wp).toHaveLength(2);
-    // Same row, facing away → detour above
-    // e1=(220,100), e2=(80,100). detourY = min(100,100)-40 = 60
+    // Same row: detour above. e1=(220,100), e2=(80,100), detourY=70
     expect(wp[0].x).toBe(220);
-    expect(wp[0].y).toBe(60);
+    expect(wp[0].y).toBe(70);
     expect(wp[1].x).toBe(80);
-    expect(wp[1].y).toBe(60);
+    expect(wp[1].y).toBe(70);
   });
 
   it('handles both vertical, facing each other', () => {
     const wp = routeOrthogonal({ x: 100, y: 120 }, 'D', { x: 100, y: 200 }, 'U');
-    expect(wp).toHaveLength(0); // straight through
+    // Same col: always detour. e1=(100,140), e2=(100,180), detourX=70
+    expect(wp).toHaveLength(2);
+    expect(wp[0]).toEqual({ x: 70, y: 140 });
+    expect(wp[1]).toEqual({ x: 70, y: 180 });
   });
 
   it('handles both vertical, different cols', () => {
@@ -98,9 +101,11 @@ describe('routeOrthogonal', () => {
   it('handles both vertical, same col, facing away', () => {
     const wp = routeOrthogonal({ x: 100, y: 200 }, 'D', { x: 100, y: 120 }, 'U');
     expect(wp).toHaveLength(2);
-    // Same col, facing away → detour left
-    expect(wp[0].x).toBe(60);
-    expect(wp[1].x).toBe(60);
+    // Same col: detour left. e1=(100,220), e2=(100,100), detourX=70
+    expect(wp[0].x).toBe(70);
+    expect(wp[0].y).toBe(220);
+    expect(wp[1].x).toBe(70);
+    expect(wp[1].y).toBe(100);
   });
 });
 
@@ -142,11 +147,12 @@ describe('buildRoundedPath', () => {
 });
 
 describe('buildPointList', () => {
-  it('returns [t1, t2] when waypoints are empty and path is straight', () => {
+  it('returns terminal + detour + terminal for same-row auto-route', () => {
     const pts = buildPointList({ x: 120, y: 100 }, 'R', { x: 200, y: 100 }, 'L', []);
-    expect(pts).toHaveLength(2);
+    // Same row: auto-routed detour → [t1, detour1, detour2, t2]
+    expect(pts).toHaveLength(4);
     expect(pts[0]).toEqual({ x: 120, y: 100 });
-    expect(pts[1]).toEqual({ x: 200, y: 100 });
+    expect(pts[3]).toEqual({ x: 200, y: 100 });
   });
 
   it('returns terminal + waypoints + terminal when waypoints provided', () => {

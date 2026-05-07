@@ -113,14 +113,16 @@
     "tooComplex": "This circuit is too complex for automatic analysis. Try simplifying your connections."
   },
   "tutorial": {
-    "step1Title": "Welcome to CircuitLab!",
-    "step1Body": "Start by clicking the Generator (G) in the left toolbar, then click on the canvas to place it. This is your power source.",
-    "step2Title": "Pick your wire style",
-    "step2Body": "Choose Straight, Curved, or Corner wire type in the toolbar. Corner mode gives clean 90° routing that snaps to grid.",
-    "step3Title": "Connect your circuit",
-    "step3Body": "Select the Wire tool, then click the colored dots on two components to connect them. Green dots = endpoints, purple = bends you can drag.",
-    "step4Title": "You're all set!",
-    "step4Body": "Press ? for full help anytime. Drag components, adjust voltages, try Challenge mode, or export your circuit as PNG. Have fun!"
+    "step1Title": "1. Place a Generator",
+    "step1Body": "The Generator chip is highlighted. Click it, then click the canvas to place your power source.",
+    "step2Title": "2. Add a Lamp",
+    "step2Body": "Now click the Lamp chip, then click the canvas to place a light bulb.",
+    "step3Title": "3. Connect with a Wire",
+    "step3Body": "The Wire tool is selected. Click the colored dot on the Generator, then click the dot on the Lamp. A wire will appear!",
+    "step4Title": "4. Switch to Corner Style",
+    "step4Body": "Now select the wire by clicking it, then change its style to 'Corner' here. Corner wires use clean right-angle routing that snaps to grid.",
+    "step5Title": "5. You're Ready!",
+    "step5Body": "Your first circuit is complete! Drag components to move them, press ? for help, or try Challenge mode. Have fun!"
   },
   "help": {
     "title": "CircuitLab Help",
