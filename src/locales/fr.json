@@ -113,10 +113,12 @@
     "tooComplex": "Ce circuit est trop complexe pour l'analyse automatique. Essaie de simplifier tes connexions."
   },
   "tutorial": {
-    "step1Title": "1. Place un Générateur",
-    "step1Body": "Le chip Générateur est en surbrillance. Clique dessus, puis clique sur le canevas pour placer ta source d'énergie.",
-    "step2Title": "2. Ajoute une Lampe",
-    "step2Body": "Clique sur le chip Lampe, puis sur le canevas pour placer une ampoule.",
+    "welcomeTitle": "Bienvenue sur CircuitLab !",
+    "welcomeBody": "Construisons ton premier circuit ensemble. Glisse les composants de la barre d'outils dans la zone verte du canevas, puis connecte-les avec des fils.",
+    "step1Title": "1. Glisse un Générateur",
+    "step1Body": "Glisse le chip Générateur depuis la barre d'outils dans le rectangle vert sur le canevas. C'est ta source d'énergie.",
+    "step2Title": "2. Glisse une Lampe",
+    "step2Body": "Maintenant glisse le chip Lampe dans le rectangle vert. Place-la à côté du générateur.",
     "step3Title": "3. Connecte avec un Fil",
     "step3Body": "L'outil Fil est sélectionné. Clique sur le point du Générateur, puis sur celui de la Lampe. Un fil apparaîtra !",
     "step4Title": "4. Passe en Style Angle",

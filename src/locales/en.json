@@ -113,10 +113,12 @@
     "tooComplex": "This circuit is too complex for automatic analysis. Try simplifying your connections."
   },
   "tutorial": {
-    "step1Title": "1. Place a Generator",
-    "step1Body": "The Generator chip is highlighted. Click it, then click the canvas to place your power source.",
-    "step2Title": "2. Add a Lamp",
-    "step2Body": "Now click the Lamp chip, then click the canvas to place a light bulb.",
+    "welcomeTitle": "Welcome to CircuitLab!",
+    "welcomeBody": "Let's build your first circuit together. Drag components from the toolbar into the highlighted area on the canvas, then connect them with wires.",
+    "step1Title": "1. Drag in a Generator",
+    "step1Body": "Drag the highlighted Generator chip from the toolbar into the green rectangle on the canvas. This is your power source.",
+    "step2Title": "2. Drag in a Lamp",
+    "step2Body": "Now drag the Lamp chip into the green rectangle. Place it next to the generator.",
     "step3Title": "3. Connect with a Wire",
     "step3Body": "The Wire tool is selected. Click the colored dot on the Generator, then click the dot on the Lamp. A wire will appear!",
     "step4Title": "4. Switch to Corner Style",

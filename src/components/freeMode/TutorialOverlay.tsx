@@ -5,12 +5,22 @@ import { useFreeModeStore } from '../../store/freeModeStore';
 const STORAGE_KEY = 'circuitlab-tutorial-done';
 
 const STEPS = [
-  { target: 'toolbar-generator', titleKey: 'tutorial.step1Title', bodyKey: 'tutorial.step1Body' },
-  { target: 'toolbar-lamp', titleKey: 'tutorial.step2Title', bodyKey: 'tutorial.step2Body' },
-  { target: 'toolbar-wire', titleKey: 'tutorial.step3Title', bodyKey: 'tutorial.step3Body' },
-  { target: 'toolbar-corner', titleKey: 'tutorial.step4Title', bodyKey: 'tutorial.step4Body' },
-  { target: 'canvas-spot', titleKey: 'tutorial.step5Title', bodyKey: 'tutorial.step5Body' },
+  { target: 'toolbar-generator', area: true, titleKey: 'tutorial.step1Title', bodyKey: 'tutorial.step1Body' },
+  { target: 'toolbar-lamp', area: true, titleKey: 'tutorial.step2Title', bodyKey: 'tutorial.step2Body' },
+  { target: 'toolbar-wire', area: false, titleKey: 'tutorial.step3Title', bodyKey: 'tutorial.step3Body' },
+  { target: 'toolbar-corner', area: false, titleKey: 'tutorial.step4Title', bodyKey: 'tutorial.step4Body' },
+  { target: 'canvas-spot', area: true, titleKey: 'tutorial.step5Title', bodyKey: 'tutorial.step5Body' },
 ];
+
+// Canvas drop zone — where components should be placed
+function getCanvasRect(): DOMRect {
+  return DOMRect.fromRect({
+    x: window.innerWidth * 0.35,
+    y: window.innerHeight * 0.2,
+    width: window.innerWidth * 0.4,
+    height: window.innerHeight * 0.55,
+  });
+}
 
 export function TutorialOverlay() {
   const { t } = useTranslation();
@@ -20,22 +30,23 @@ export function TutorialOverlay() {
   const setWireLineType = useFreeModeStore(s => s.setWireLineType);
 
   const [done, setDone] = useState(() => localStorage.getItem(STORAGE_KEY) === '1');
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(-1); // -1 = intro screen
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [areaRect, setAreaRect] = useState<DOMRect>(getCanvasRect());
   const timerRef = useRef(0);
 
-  // Auto-select tool and auto-advance
+  // Auto-advance
   useEffect(() => {
-    if (done) return;
+    if (done || step < 0) return;
     const genCount = components.filter(c => c.componentType === 'generator').length;
     const lampCount = components.filter(c => c.componentType === 'lamp').length;
     const hasCorner = wires.some(w => w.lineType === 'corner');
 
     if (step === 0) {
-      setActiveTool('place-generator');
+      setActiveTool('select');
       if (genCount > 0) setStep(1);
     } else if (step === 1) {
-      setActiveTool('place-lamp');
+      setActiveTool('select');
       if (lampCount > 0) setStep(2);
     } else if (step === 2) {
       setActiveTool('wire');
@@ -49,21 +60,19 @@ export function TutorialOverlay() {
     }
   }, [components, wires, step, done, setActiveTool, setWireLineType]);
 
-  // Track target element position
+  // Track element + area positions
   useEffect(() => {
-    if (done) return;
+    if (done || step < 0) return;
 
     const track = () => {
-      const el = document.querySelector(`[data-tour="${STEPS[step].target}"]`);
+      const s = STEPS[step];
+      const el = document.querySelector(`[data-tour="${s.target}"]`);
       if (el) {
         setTargetRect(el.getBoundingClientRect());
       } else {
-        // Fallback for canvas targets: center of canvas
-        setTargetRect(DOMRect.fromRect({
-          x: window.innerWidth * 0.4, y: window.innerHeight * 0.25,
-          width: window.innerWidth * 0.35, height: window.innerHeight * 0.45,
-        }));
+        setTargetRect(null);
       }
+      setAreaRect(getCanvasRect());
     };
 
     track();
@@ -75,44 +84,60 @@ export function TutorialOverlay() {
     };
   }, [step, done]);
 
-  // Persist done
   useEffect(() => {
     if (done) localStorage.setItem(STORAGE_KEY, '1');
   }, [done]);
 
   if (done) return null;
 
-  const s = STEPS[step];
+  const s = step >= 0 ? STEPS[step] : null;
   const isLast = step === STEPS.length - 1;
+  const showArea = s?.area !== false; // show canvas area for most steps
 
-  // Card positioning: if target is in toolbar, card goes to its right
-  const isToolbarTarget = targetRect && targetRect.left < 280;
-  const cardStyle = targetRect ? (isToolbarTarget ? {
-    left: targetRect.right + 24,
-    top: Math.max(80, targetRect.top - 40),
-  } : {
-    left: Math.max(280, Math.min(targetRect.left + targetRect.width / 2 - 190, window.innerWidth - 400)),
-    top: targetRect.bottom > window.innerHeight / 2
-      ? targetRect.top - 230
-      : targetRect.bottom + 16,
-  }) : { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
+  // Card position
+  const cardStyle: React.CSSProperties = (() => {
+    if (step < 0) {
+      return { left: '50%', top: '40%', transform: 'translate(-50%, -50%)' };
+    }
+    if (!targetRect) {
+      return { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
+    }
+    const isToolbar = targetRect.left < 280;
+    if (isToolbar) {
+      return { left: targetRect.right + 20, top: Math.max(80, targetRect.top - 30) };
+    }
+    return {
+      left: Math.max(280, Math.min(targetRect.left + targetRect.width / 2 - 180, window.innerWidth - 380)),
+      top: targetRect.bottom > window.innerHeight / 2
+        ? targetRect.top - 220
+        : targetRect.bottom + 16,
+    };
+  })();
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* Backdrop with spotlight hole */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none" width="100%" height="100%">
         <defs>
           <mask id="tut-mask">
             <rect width="100%" height="100%" fill="white" />
-            {targetRect && (
+            {/* Spotlight on toolbar element */}
+            {step >= 0 && targetRect && (
               <rect x={targetRect.left - 6} y={targetRect.top - 6}
                 width={targetRect.width + 12} height={targetRect.height + 12}
                 rx="8" fill="black" />
             )}
+            {/* Spotlight on canvas drop area */}
+            {showArea && (
+              <rect x={areaRect.x} y={areaRect.y}
+                width={areaRect.width} height={areaRect.height}
+                rx="12" fill="black" />
+            )}
           </mask>
         </defs>
         <rect width="100%" height="100%" fill="rgba(0,0,0,0.5)" mask="url(#tut-mask)" />
-        {targetRect && (
+
+        {/* Pulsing ring on toolbar target */}
+        {step >= 0 && targetRect && (
           <rect x={targetRect.left - 6} y={targetRect.top - 6}
             width={targetRect.width + 12} height={targetRect.height + 12}
             rx="8" fill="none" stroke="#a78bfa" strokeWidth={2.5}
@@ -120,32 +145,63 @@ export function TutorialOverlay() {
             <animate attributeName="stroke-dashoffset" from="0" to="24" dur="1s" repeatCount="indefinite" />
           </rect>
         )}
+
+        {/* Dashed border on canvas drop area */}
+        {showArea && (
+          <rect x={areaRect.x} y={areaRect.y}
+            width={areaRect.width} height={areaRect.height}
+            rx="12" fill="none" stroke="#22c55e" strokeWidth={2}
+            strokeDasharray="10 6" opacity={0.7}>
+            <animate attributeName="stroke-dashoffset" from="0" to="32" dur="1.5s" repeatCount="indefinite" />
+          </rect>
+        )}
       </svg>
 
       {/* Instruction card */}
       <div className="absolute pointer-events-auto" style={cardStyle}>
         <div className="bg-[#2d2a3e] border border-purple-500/40 rounded-2xl shadow-2xl w-[360px] p-5">
-          <div className="flex gap-1.5 mb-3">
-            {STEPS.map((_, i) => (
-              <div key={i} className={`h-1.5 rounded-full flex-1 transition-colors duration-300 ${
-                i <= step ? 'bg-purple-500' : 'bg-[#4a4560]'
-              }`} />
-            ))}
-          </div>
-          <h3 className="text-base font-bold text-purple-300 mb-1.5">{t(s.titleKey)}</h3>
-          <p className="text-xs text-[#9ca3af] leading-relaxed mb-4">{t(s.bodyKey)}</p>
-          <div className="flex gap-2">
-            <button onClick={() => setDone(true)}
-              className="px-3 py-1.5 rounded-lg text-[10px] text-[#6b6580] hover:text-white transition-colors">
-              Skip
-            </button>
-            <div className="flex-1" />
-            <button onClick={() => isLast ? setDone(true) : setStep(s => s + 1)}
-              className="px-4 py-1.5 rounded-lg bg-purple-700 text-white text-xs font-bold
-                         hover:bg-purple-600 transition-colors">
-              {isLast ? 'Got it!' : 'Next'}
-            </button>
-          </div>
+          {step < 0 ? (
+            <>
+              <h3 className="text-xl font-bold text-purple-300 mb-2">{t('tutorial.welcomeTitle')}</h3>
+              <p className="text-sm text-[#9ca3af] leading-relaxed mb-4">{t('tutorial.welcomeBody')}</p>
+              <div className="flex gap-2">
+                <button onClick={() => setDone(true)}
+                  className="px-3 py-1.5 rounded-lg text-[10px] text-[#6b6580] hover:text-white transition-colors">
+                  Skip
+                </button>
+                <div className="flex-1" />
+                <button onClick={() => setStep(0)}
+                  className="px-5 py-2 rounded-lg bg-purple-700 text-white text-sm font-bold
+                             hover:bg-purple-600 transition-colors">
+                  Let's go!
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex gap-1.5 mb-3">
+                {STEPS.map((_, i) => (
+                  <div key={i} className={`h-1.5 rounded-full flex-1 transition-colors duration-300 ${
+                    i <= step ? 'bg-purple-500' : 'bg-[#4a4560]'
+                  }`} />
+                ))}
+              </div>
+              <h3 className="text-base font-bold text-purple-300 mb-1.5">{t(s!.titleKey)}</h3>
+              <p className="text-xs text-[#9ca3af] leading-relaxed mb-4">{t(s!.bodyKey)}</p>
+              <div className="flex gap-2">
+                <button onClick={() => setDone(true)}
+                  className="px-3 py-1.5 rounded-lg text-[10px] text-[#6b6580] hover:text-white transition-colors">
+                  Skip
+                </button>
+                <div className="flex-1" />
+                <button onClick={() => isLast ? setDone(true) : setStep(s => s + 1)}
+                  className="px-4 py-1.5 rounded-lg bg-purple-700 text-white text-xs font-bold
+                             hover:bg-purple-600 transition-colors">
+                  {isLast ? 'Done!' : 'Next'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
