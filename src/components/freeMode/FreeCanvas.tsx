@@ -7,6 +7,7 @@ import { WireDrawingLayer } from './WireDrawingLayer';
 import { BreadboardGrid } from './BreadboardGrid';
 import { ChallengePanel } from './ChallengePanel';
 import { HelpModal } from './HelpModal';
+import { TutorialOverlay } from './TutorialOverlay';
 import { ErrorBoundary } from './ErrorBoundary';
 import { PIXEL_TO_METERS } from '../../utils/constants';
 import type { FreeComponent as FreeComponentT } from '../../engine/types';
@@ -462,6 +463,7 @@ export function FreeCanvas() {
   return (
     <ErrorBoundary>
     <div className="flex-1 flex flex-col overflow-hidden">
+      <TutorialOverlay />
       <ChallengePanel />
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
