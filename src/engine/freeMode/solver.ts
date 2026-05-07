@@ -45,47 +45,8 @@ export function solveFreeCircuit(
   // ── 1. Build graph ──
   const graph = buildGraph(components, wires);
 
-  // Build terminal polarities from generator connections
+  // Build terminal polarities from actual solver voltages (computed below after solving)
   const polarities: Record<string, '+' | '-'> = {};
-  if (graph.generators.length > 0) {
-    // Step 1: seed from generator terminals
-    for (const [tid, nodeId] of graph.nodeMap) {
-      for (const gen of graph.generators) {
-        if (nodeId === gen.pos) { polarities[tid] = '+'; break; }
-        if (nodeId === gen.neg) { polarities[tid] = '-'; break; }
-      }
-    }
-    // Step 2: propagate iteratively — wire (same-node) first, then component (opposite)
-    let changed = true;
-    while (changed) {
-      changed = false;
-      // Wire propagation: terminals sharing an electrical node get the same polarity
-      for (const [tid, nodeId] of graph.nodeMap) {
-        if (!polarities[tid]) continue;
-        for (const [otherTid, otherNodeId] of graph.nodeMap) {
-          if (otherNodeId === nodeId && !polarities[otherTid]) {
-            polarities[otherTid] = polarities[tid];
-            changed = true;
-          }
-        }
-      }
-      // Component propagation: current flows from + to -, opposite terminal gets opposite sign
-      for (const comp of components) {
-        if (comp.componentType === 'generator' || comp.componentType === 'junction') continue;
-        const t0 = terminalId(comp.id, 0);
-        const t1 = terminalId(comp.id, 1);
-        // Only propagate if both terminals are on DIFFERENT nodes (not bypassed)
-        if (graph.nodeMap.get(t0) === graph.nodeMap.get(t1)) continue;
-        if (polarities[t0] && !polarities[t1]) {
-          polarities[t1] = polarities[t0] === '+' ? '-' : '+';
-          changed = true;
-        } else if (polarities[t1] && !polarities[t0]) {
-          polarities[t0] = polarities[t1] === '+' ? '-' : '+';
-          changed = true;
-        }
-      }
-    }
-  }
 
   if (!graph.generatorNodes) {
     return {
@@ -183,6 +144,73 @@ export function solveFreeCircuit(
   // Add total wire resistance to total
   const totalR = solverResult.totalResistance + totalWireResistance;
   const totalI = totalR > 0 && isFinite(totalR) ? voltage / totalR : 0;
+
+  // Compute polarities by propagating from generator through the electrical graph
+  if (graph.generators.length > 0) {
+    const g0 = graph.generators[0];
+    // Seed: only generator's own terminals
+    polarities[terminalId(g0.id, 0)] = '+';
+    polarities[terminalId(g0.id, 1)] = '-';
+
+    // BFS from gen.pos outward through components
+    // visited tracks component IDs already processed
+    const visited = new Set<string>();
+    // Queue entries: [componentId, knownTerminalIndex]
+    const queue: [string, 0 | 1][] = [];
+
+    // Find components connected to the generator's pos/neg nodes and seed their terminals
+    for (const comp of components) {
+      if (comp.componentType === 'generator' || comp.componentType === 'junction') continue;
+      const n0 = graph.nodeMap.get(terminalId(comp.id, 0));
+      const n1 = graph.nodeMap.get(terminalId(comp.id, 1));
+      if (n0 === undefined || n1 === undefined || n0 === n1) continue;
+      if (n0 === g0.pos) {
+        polarities[terminalId(comp.id, 0)] = '+';
+        visited.add(comp.id); queue.push([comp.id, 0]);
+      } else if (n1 === g0.pos) {
+        polarities[terminalId(comp.id, 1)] = '+';
+        visited.add(comp.id); queue.push([comp.id, 1]);
+      }
+      if (n0 === g0.neg) {
+        polarities[terminalId(comp.id, 0)] = '-';
+        if (!visited.has(comp.id)) { visited.add(comp.id); queue.push([comp.id, 0]); }
+      } else if (n1 === g0.neg) {
+        polarities[terminalId(comp.id, 1)] = '-';
+        if (!visited.has(comp.id)) { visited.add(comp.id); queue.push([comp.id, 1]); }
+      }
+    }
+
+    while (queue.length > 0) {
+      const [compId, knownIdx] = queue.shift()!;
+      const knownTid = terminalId(compId, knownIdx);
+      const otherIdx: 0 | 1 = knownIdx === 0 ? 1 : 0;
+      const otherTid = terminalId(compId, otherIdx);
+      const otherNode = graph.nodeMap.get(otherTid);
+      if (otherNode === undefined) continue;
+
+      // Assign opposite to the other terminal (component rule takes priority)
+      const knownSign = polarities[knownTid];
+      const oppositeSign: '+' | '-' = knownSign === '+' ? '-' : '+';
+      polarities[otherTid] = oppositeSign;
+      // Propagate to unassigned terminals on the same node
+      for (const [tid, nodeId] of graph.nodeMap) {
+        if (nodeId === otherNode && !polarities[tid]) {
+          polarities[tid] = oppositeSign;
+        }
+      }
+
+      // Enqueue components connected to the opposite node that haven't been visited
+      for (const c of components) {
+        if (c.componentType === 'generator' || c.componentType === 'junction') continue;
+        if (visited.has(c.id)) continue;
+        const n0 = graph.nodeMap.get(terminalId(c.id, 0));
+        const n1 = graph.nodeMap.get(terminalId(c.id, 1));
+        if (n0 === undefined || n1 === undefined || n0 === n1) continue;
+        if (n0 === otherNode) { visited.add(c.id); queue.push([c.id, 0]); }
+        else if (n1 === otherNode) { visited.add(c.id); queue.push([c.id, 1]); }
+      }
+    }
+  }
 
   // Check fuses: if current > rating, mark blown
   const blownFuses = new Set<string>();
