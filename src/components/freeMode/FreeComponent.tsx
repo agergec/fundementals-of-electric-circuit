@@ -98,11 +98,11 @@ export const FreeComponent = memo(function FreeComponent({
       <g transform={`rotate(${rotation})`} style={{ pointerEvents: 'none' }}>
         {componentType === 'generator' && <Generator x={0} y={0} voltage={component.voltage ?? voltage} rotation={elemRotation} isSelected={isSelected} realistic={realisticView} />}
         {componentType === 'lamp' && <Lamp x={0} y={0} values={values} multiplier={resistanceMultiplier} isSelected={isSelected} onClick={bodyClick} isFlowing={isFlowing} rotation={elemRotation} realistic={realisticView} />}
-        {componentType === 'ammeter' && <Amperemeter x={0} y={0} values={values} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
-        {componentType === 'voltmeter' && <Voltmeter x={0} y={0} values={values} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
-        {componentType === 'switch' && <Switch x={0} y={0} closed={!!closed} isSelected={isSelected} onClick={bodyClick} onDoubleClick={bodyDblClick} rotation={elemRotation} />}
-        {componentType === 'resistor' && <Resistor x={0} y={0} multiplier={resistanceMultiplier} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
-        {componentType === 'fuse' && <Fuse x={0} y={0} blown={!!component.blown} current={values?.current} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} />}
+        {componentType === 'ammeter' && <Amperemeter x={0} y={0} values={values} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} realistic={realisticView} />}
+        {componentType === 'voltmeter' && <Voltmeter x={0} y={0} values={values} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} realistic={realisticView} />}
+        {componentType === 'switch' && <Switch x={0} y={0} closed={!!closed} isSelected={isSelected} onClick={bodyClick} onDoubleClick={bodyDblClick} rotation={elemRotation} realistic={realisticView} />}
+        {componentType === 'resistor' && <Resistor x={0} y={0} multiplier={resistanceMultiplier} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} realistic={realisticView} />}
+        {componentType === 'fuse' && <Fuse x={0} y={0} blown={!!component.blown} current={values?.current} isSelected={isSelected} onClick={bodyClick} rotation={elemRotation} realistic={realisticView} />}
         {isJunction && <circle cx={0} cy={0} r={10} fill="#a78bfa" stroke="#c4b5fd" strokeWidth={2} />}
 
         {(componentType as string) !== 'generator' && [0, 1].map((idx) => {

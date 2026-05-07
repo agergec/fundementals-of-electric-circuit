@@ -112,6 +112,16 @@
     "placeJunction": "Jonction",
     "tooComplex": "Ce circuit est trop complexe pour l'analyse automatique. Essaie de simplifier tes connexions."
   },
+  "tutorial": {
+    "step1Title": "Bienvenue sur CircuitLab !",
+    "step1Body": "Commence par cliquer sur Générateur (G) dans la barre d'outils, puis clique sur le canevas pour le placer. C'est ta source d'énergie.",
+    "step2Title": "Choisis ton style de fil",
+    "step2Body": "Choisis Droit, Courbé ou Angle dans la barre d'outils. Le mode Angle donne un routage orthogonal net qui s'aligne sur la grille.",
+    "step3Title": "Connecte ton circuit",
+    "step3Body": "Sélectionne l'outil Fil, puis clique sur les points colorés de deux composants pour les connecter. Points verts = extrémités, violets = coudes ajustables.",
+    "step4Title": "Tu es prêt !",
+    "step4Body": "Appuie sur ? pour l'aide complète à tout moment. Déplace les composants, ajuste les tensions, essaie le mode Défi, ou exporte ton circuit en PNG. Amuse-toi !"
+  },
   "help": {
     "title": "Aide CircuitLab",
     "sections": [

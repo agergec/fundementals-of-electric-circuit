@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export function HelpModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const [section, setSection] = useState<number | null>(null);
   const sections: { title: string; icon: string; items: string[] }[] = t('help.sections', { returnObjects: true }) as any;
+
+  const restartTutorial = () => {
+    localStorage.removeItem('circuitlab-tutorial-done');
+    onClose();
+    window.location.reload();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/60"
@@ -39,6 +45,14 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
               )}
             </div>
           ))}
+
+          {/* Restart tutorial */}
+          <button onClick={restartTutorial}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1e1b2e] border border-[#4a4560]/50
+                       text-[#8b83a8] text-sm hover:text-white hover:border-[#6b6580] transition-colors">
+            <RotateCcw size={14} />
+            Restart Tutorial
+          </button>
         </div>
       </div>
     </div>
