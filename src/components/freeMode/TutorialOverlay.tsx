@@ -5,11 +5,11 @@ import { useFreeModeStore } from '../../store/freeModeStore';
 const STORAGE_KEY = 'circuitlab-tutorial-done';
 
 const STEPS = [
-  { target: 'toolbar-generator', area: true, titleKey: 'tutorial.step1Title', bodyKey: 'tutorial.step1Body' },
-  { target: 'toolbar-lamp', area: true, titleKey: 'tutorial.step2Title', bodyKey: 'tutorial.step2Body' },
-  { target: 'toolbar-wire', area: false, titleKey: 'tutorial.step3Title', bodyKey: 'tutorial.step3Body' },
-  { target: 'toolbar-corner', area: false, titleKey: 'tutorial.step4Title', bodyKey: 'tutorial.step4Body' },
-  { target: 'canvas-spot', area: true, titleKey: 'tutorial.step5Title', bodyKey: 'tutorial.step5Body' },
+  { target: 'toolbar-generator', titleKey: 'tutorial.step1Title', bodyKey: 'tutorial.step1Body' },
+  { target: 'toolbar-lamp', titleKey: 'tutorial.step2Title', bodyKey: 'tutorial.step2Body' },
+  { target: 'toolbar-wire', titleKey: 'tutorial.step3Title', bodyKey: 'tutorial.step3Body' },
+  { target: 'toolbar-corner', titleKey: 'tutorial.step4Title', bodyKey: 'tutorial.step4Body' },
+  { target: 'canvas-spot', titleKey: 'tutorial.step5Title', bodyKey: 'tutorial.step5Body' },
 ];
 
 // Canvas drop zone — where components should be placed
@@ -92,26 +92,14 @@ export function TutorialOverlay() {
 
   const s = step >= 0 ? STEPS[step] : null;
   const isLast = step === STEPS.length - 1;
-  const showArea = s?.area !== false; // show canvas area for most steps
 
-  // Card position
+  // Card position: top-left of canvas area, never overlaps the rectangle
   const cardStyle: React.CSSProperties = (() => {
     if (step < 0) {
       return { left: '50%', top: '40%', transform: 'translate(-50%, -50%)' };
     }
-    if (!targetRect) {
-      return { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
-    }
-    const isToolbar = targetRect.left < 280;
-    if (isToolbar) {
-      return { left: targetRect.right + 20, top: Math.max(80, targetRect.top - 30) };
-    }
-    return {
-      left: Math.max(280, Math.min(targetRect.left + targetRect.width / 2 - 180, window.innerWidth - 380)),
-      top: targetRect.bottom > window.innerHeight / 2
-        ? targetRect.top - 220
-        : targetRect.bottom + 16,
-    };
+    // Card sits at top-left of the canvas, to the right of the toolbar
+    return { left: 280, top: 16 };
   })();
 
   return (
@@ -126,8 +114,8 @@ export function TutorialOverlay() {
                 width={targetRect.width + 12} height={targetRect.height + 12}
                 rx="8" fill="black" />
             )}
-            {/* Spotlight on canvas drop area */}
-            {showArea && (
+            {/* Canvas drop area — always visible from step 0 onwards */}
+            {step >= 0 && (
               <rect x={areaRect.x} y={areaRect.y}
                 width={areaRect.width} height={areaRect.height}
                 rx="12" fill="black" />
@@ -147,7 +135,7 @@ export function TutorialOverlay() {
         )}
 
         {/* Dashed border on canvas drop area */}
-        {showArea && (
+        {step >= 0 && (
           <rect x={areaRect.x} y={areaRect.y}
             width={areaRect.width} height={areaRect.height}
             rx="12" fill="none" stroke="#22c55e" strokeWidth={2}
