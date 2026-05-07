@@ -45,32 +45,21 @@ export function solveFreeCircuit(
   // ── 1. Build graph ──
   const graph = buildGraph(components, wires);
 
-  // Build terminal polarities from generator connection
+  // Build terminal polarities from generator connections
   const polarities: Record<string, '+' | '-'> = {};
   if (graph.generators.length > 0) {
+    // Step 1: seed from generator terminals
     for (const [tid, nodeId] of graph.nodeMap) {
       for (const gen of graph.generators) {
-        if (nodeId === gen.pos) polarities[tid] = '+';
-        else if (nodeId === gen.neg) polarities[tid] = '-';
+        if (nodeId === gen.pos) { polarities[tid] = '+'; break; }
+        if (nodeId === gen.neg) { polarities[tid] = '-'; break; }
       }
     }
-    // Propagate through components: if one terminal has polarity, the other gets opposite
+    // Step 2: propagate iteratively — wire (same-node) first, then component (opposite)
     let changed = true;
     while (changed) {
       changed = false;
-      for (const comp of components) {
-        if (comp.componentType === 'generator' || comp.componentType === 'junction') continue;
-        const t0 = terminalId(comp.id, 0);
-        const t1 = terminalId(comp.id, 1);
-        if (polarities[t0] && !polarities[t1]) {
-          polarities[t1] = polarities[t0] === '+' ? '-' : '+';
-          changed = true;
-        } else if (polarities[t1] && !polarities[t0]) {
-          polarities[t0] = polarities[t1] === '+' ? '-' : '+';
-          changed = true;
-        }
-      }
-      // Also propagate through wires: terminals in same electrical node share polarity
+      // Wire propagation: terminals sharing an electrical node get the same polarity
       for (const [tid, nodeId] of graph.nodeMap) {
         if (!polarities[tid]) continue;
         for (const [otherTid, otherNodeId] of graph.nodeMap) {
@@ -78,6 +67,21 @@ export function solveFreeCircuit(
             polarities[otherTid] = polarities[tid];
             changed = true;
           }
+        }
+      }
+      // Component propagation: current flows from + to -, opposite terminal gets opposite sign
+      for (const comp of components) {
+        if (comp.componentType === 'generator' || comp.componentType === 'junction') continue;
+        const t0 = terminalId(comp.id, 0);
+        const t1 = terminalId(comp.id, 1);
+        // Only propagate if both terminals are on DIFFERENT nodes (not bypassed)
+        if (graph.nodeMap.get(t0) === graph.nodeMap.get(t1)) continue;
+        if (polarities[t0] && !polarities[t1]) {
+          polarities[t1] = polarities[t0] === '+' ? '-' : '+';
+          changed = true;
+        } else if (polarities[t1] && !polarities[t0]) {
+          polarities[t0] = polarities[t1] === '+' ? '-' : '+';
+          changed = true;
         }
       }
     }

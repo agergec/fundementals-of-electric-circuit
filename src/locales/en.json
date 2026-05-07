@@ -91,7 +91,13 @@
     "fuseBlown": "Fuse Blown!",
     "fuseBlownDetail": "The fuse has blown because the current exceeded its rating. It is now an open circuit. Click Reset Fuse to restore it.",
     "generatorsParallel": "Conflicting Generators!",
-    "generatorsParallelDetail": "Two generators with different voltages are directly in parallel. This creates a short circuit between them — infinite current would flow. Connect them in different branches or use the same voltage."
+    "generatorsParallelDetail": "Two generators with different voltages are directly in parallel. This creates a short circuit between them — infinite current would flow. Connect them in different branches or use the same voltage.",
+    "generatorShorted": "Generator Shorted!",
+    "generatorShortedDetail": "Both terminals of the generator are connected to the same point. The generator has zero voltage across it — check your wiring.",
+    "componentBypassed": "Component Bypassed!",
+    "componentBypassedDetail": "Both ends of this component are connected to the same wire. No current can flow through it — it is effectively not in the circuit.",
+    "openPole": "Open Connection!",
+    "openPoleDetail": "One terminal of this component is not connected to anything. Connect it to complete the circuit."
   },
   "freeMode": {
     "tool": "Tool",

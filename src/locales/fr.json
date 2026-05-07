@@ -91,7 +91,13 @@
     "fuseBlown": "Fusible grillé !",
     "fuseBlownDetail": "Le fusible a grillé car le courant a dépassé son calibre. Il est maintenant un circuit ouvert. Clique sur Réarmer pour le restaurer.",
     "generatorsParallel": "Générateurs en conflit !",
-    "generatorsParallelDetail": "Deux générateurs avec des tensions différentes sont directement en parallèle. Cela crée un court-circuit entre eux — un courant infini circulerait. Branche-les dans des branches différentes ou utilise la même tension."
+    "generatorsParallelDetail": "Deux générateurs avec des tensions différentes sont directement en parallèle. Cela crée un court-circuit entre eux — un courant infini circulerait. Branche-les dans des branches différentes ou utilise la même tension.",
+    "generatorShorted": "Générateur court-circuité !",
+    "generatorShortedDetail": "Les deux bornes du générateur sont connectées au même point. Le générateur a une tension nulle — vérifie ton câblage.",
+    "componentBypassed": "Composant contourné !",
+    "componentBypassedDetail": "Les deux extrémités de ce composant sont connectées au même fil. Aucun courant ne peut le traverser — il n'est pas dans le circuit.",
+    "openPole": "Connexion ouverte !",
+    "openPoleDetail": "Une borne de ce composant n'est connectée à rien. Connecte-la pour fermer le circuit."
   },
   "freeMode": {
     "tool": "Outil",

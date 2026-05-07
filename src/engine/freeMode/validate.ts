@@ -1,4 +1,5 @@
 import type { FreeComponent, FreeWire } from '../types';
+import { terminalId } from '../types';
 import { buildGraph } from './graph';
 
 export interface ValidationIssue {
@@ -141,6 +142,48 @@ export function validateCircuit(
       detailKey: 'circuit.openCircuitDetail',
       ids: [],
     });
+  }
+
+  // ── Bypassed / open-pole components ──
+  // A component is bypassed when both its terminals land on the same electrical node
+  // A terminal is open when it's not connected to anything (not in nodeMap)
+  for (const comp of components) {
+    if (comp.componentType === 'generator' || comp.componentType === 'junction') continue;
+    const n0 = graph.nodeMap.get(terminalId(comp.id, 0));
+    const n1 = graph.nodeMap.get(terminalId(comp.id, 1));
+    // Both terminals at same node: component is bypassed, no current flows through it
+    if (n0 !== undefined && n1 !== undefined && n0 === n1) {
+      errorIds.add(comp.id);
+      issues.push({
+        level: 'warning',
+        key: 'circuit.componentBypassed',
+        detailKey: 'circuit.componentBypassedDetail',
+        ids: [comp.id],
+      });
+    }
+    // One terminal is floating (not connected to anything)
+    if ((n0 === undefined && n1 !== undefined) || (n0 !== undefined && n1 === undefined)) {
+      errorIds.add(comp.id);
+      issues.push({
+        level: 'warning',
+        key: 'circuit.openPole',
+        detailKey: 'circuit.openPoleDetail',
+        ids: [comp.id],
+      });
+    }
+  }
+
+  // ── Generator shorted (pos == neg) ──
+  for (const gen of graph.generators) {
+    if (gen.pos === gen.neg) {
+      errorIds.add(gen.id);
+      issues.push({
+        level: 'error',
+        key: 'circuit.generatorShorted',
+        detailKey: 'circuit.generatorShortedDetail',
+        ids: [gen.id],
+      });
+    }
   }
 
   // ── Fuse blown ──
