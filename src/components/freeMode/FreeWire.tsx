@@ -89,50 +89,13 @@ export const FreeWire = memo(function FreeWire({
   const fromPos = getTerminalPos(fromCompId, Number(fromIdx) as 0 | 1, components);
   const toPos = getTerminalPos(toCompId, Number(toIdx) as 0 | 1, components);
 
+  // ALL hooks must be called before any early return (React rules of hooks)
   const waypointDragRef = useRef<{ index: number; sx: number; sy: number; ox: number; oy: number } | null>(null);
-
-  if (!fromPos || !toPos) return null;
-  if (isDetached) return null;
-
-  const fc = components.find(c => c.id === fromCompId);
-  const tc = components.find(c => c.id === toCompId);
-  const dir1: Facing = fc ? facing(fromPos.x, fromPos.y, fc.x, fc.y) : 'R';
-  const dir2: Facing = tc ? facing(toPos.x, toPos.y, tc.x, tc.y) : 'L';
-
-  // Build path based on line type
-  let pathD: string;
-  let points: Point[];
-
-  try {
-    if (lineType === 'curved') {
-      pathD = buildCurvedPath(fromPos.x, fromPos.y, toPos.x, toPos.y);
-      points = [fromPos, toPos];
-    } else if (lineType === 'straight') {
-      pathD = `M ${fromPos.x} ${fromPos.y} L ${toPos.x} ${toPos.y}`;
-      points = [fromPos, toPos];
-    } else {
-      // Corner: use orthogonal router
-      points = buildPointList(fromPos, dir1, toPos, dir2, waypoints);
-      pathD = buildRoundedPath(points);
-    }
-  } catch {
-    // Fallback to straight line
-    pathD = `M ${fromPos.x} ${fromPos.y} L ${toPos.x} ${toPos.y}`;
-    points = [fromPos, toPos];
-  }
-
-  const isFlowing = current > 0.0001;
-  const color = isFlowing ? currentHeatColor(current) : '#6b7280';
-
-  // Keep mutable refs to avoid stale closures during drag
   const waypointsRef = useRef(waypoints);
   waypointsRef.current = waypoints;
-  const pointsRef = useRef(points);
-  pointsRef.current = points;
+  const pointsRef = useRef<Point[]>([]);
   const dragHandlersRef = useRef<{ move: (e: MouseEvent) => void; up: () => void } | null>(null);
 
-  // Waypoint drag — uses document-level events so drag works even
-  // when the mouse leaves the wire path
   const handleWaypointDown = useCallback((e: React.MouseEvent, index: number) => {
     e.stopPropagation();
     e.preventDefault();
@@ -167,7 +130,6 @@ export const FreeWire = memo(function FreeWire({
     document.addEventListener('mouseup', onUp);
   }, [wireId, onWaypointsDrag, onWaypointsDragStart]);
 
-  // Clean up document listeners on unmount
   useEffect(() => {
     return () => {
       waypointDragRef.current = null;
@@ -178,6 +140,41 @@ export const FreeWire = memo(function FreeWire({
       }
     };
   }, []);
+
+  // Early returns — safe: all hooks already called above
+  if (!fromPos || !toPos) return null;
+  if (isDetached) return null;
+
+  const fc = components.find(c => c.id === fromCompId);
+  const tc = components.find(c => c.id === toCompId);
+  const dir1: Facing = fc ? facing(fromPos.x, fromPos.y, fc.x, fc.y) : 'R';
+  const dir2: Facing = tc ? facing(toPos.x, toPos.y, tc.x, tc.y) : 'L';
+
+  // Build path based on line type
+  let pathD: string;
+  let points: Point[];
+
+  try {
+    if (lineType === 'curved') {
+      pathD = buildCurvedPath(fromPos.x, fromPos.y, toPos.x, toPos.y);
+      points = [fromPos, toPos];
+    } else if (lineType === 'straight') {
+      pathD = `M ${fromPos.x} ${fromPos.y} L ${toPos.x} ${toPos.y}`;
+      points = [fromPos, toPos];
+    } else {
+      points = buildPointList(fromPos, dir1, toPos, dir2, waypoints);
+      pathD = buildRoundedPath(points);
+    }
+  } catch {
+    pathD = `M ${fromPos.x} ${fromPos.y} L ${toPos.x} ${toPos.y}`;
+    points = [fromPos, toPos];
+  }
+
+  // Update points ref for drag handlers
+  pointsRef.current = points;
+
+  const isFlowing = current > 0.0001;
+  const color = isFlowing ? currentHeatColor(current) : '#6b7280';
 
   const midX = (fromPos.x + toPos.x) / 2;
   const midY = (fromPos.y + toPos.y) / 2;

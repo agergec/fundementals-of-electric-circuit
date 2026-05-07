@@ -7,6 +7,7 @@ import { WireDrawingLayer } from './WireDrawingLayer';
 import { BreadboardGrid } from './BreadboardGrid';
 import { ChallengePanel } from './ChallengePanel';
 import { HelpModal } from './HelpModal';
+import { ErrorBoundary } from './ErrorBoundary';
 import { PIXEL_TO_METERS } from '../../utils/constants';
 import type { FreeComponent as FreeComponentT } from '../../engine/types';
 
@@ -459,6 +460,7 @@ export function FreeCanvas() {
   const wireStrokeWidth = wireEnabled ? 1 + ((wireDiameterMm - 0.1) / 9.9) * 9 : 2.5;
 
   return (
+    <ErrorBoundary>
     <div className="flex-1 flex flex-col overflow-hidden">
       <ChallengePanel />
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
@@ -716,5 +718,6 @@ export function FreeCanvas() {
         )}
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
