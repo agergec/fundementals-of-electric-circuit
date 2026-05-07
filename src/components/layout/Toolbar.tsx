@@ -199,7 +199,7 @@ function FreeModeToolbar() {
           <ToolChip icon={<MousePointer2 size={16} />} label={t('freeMode.selectTool')}
             active={activeTool === 'select'} onClick={() => setActiveTool('select')} />
           <ToolChip icon={<Cable size={16} />} label={t('freeMode.wireTool')}
-            active={activeTool === 'wire'} onClick={() => setActiveTool('wire')} />
+            active={activeTool === 'wire'} onClick={() => setActiveTool('wire')} tourId="toolbar-wire" />
         </div>
       </section>
 
@@ -209,10 +209,10 @@ function FreeModeToolbar() {
         <div className="grid grid-cols-4 gap-1">
           <MiniChip icon="G" label={t('freeMode.placeGenerator')}
             active={activeTool === 'place-generator'} compType="generator"
-            onClick={() => setActiveTool('place-generator')} />
+            onClick={() => setActiveTool('place-generator')} tourId="toolbar-generator" />
           <MiniChip icon={<Lightbulb size={14} />} label={t('toolbar.lamp')}
             active={activeTool === 'place-lamp'} compType="lamp"
-            onClick={() => setActiveTool('place-lamp')} />
+            onClick={() => setActiveTool('place-lamp')} tourId="toolbar-lamp" />
           <MiniChip icon={<ToggleLeft size={14} />} label={t('toolbar.switch')}
             active={activeTool === 'place-switch'} compType="switch"
             onClick={() => setActiveTool('place-switch')} />
@@ -498,11 +498,11 @@ function ComponentChip({ icon, label, color, badge, onClick }: {
   );
 }
 
-function ToolChip({ icon, label, active, onClick }: {
-  icon: React.ReactNode; label: string; active: boolean; onClick: () => void;
+function ToolChip({ icon, label, active, onClick, tourId }: {
+  icon: React.ReactNode; label: string; active: boolean; onClick: () => void; tourId?: string;
 }) {
   return (
-    <button onClick={onClick}
+    <button onClick={onClick} data-tour={tourId}
       className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl
                   border transition-all active:scale-95
                   ${active
@@ -515,8 +515,8 @@ function ToolChip({ icon, label, active, onClick }: {
   );
 }
 
-function MiniChip({ icon, label, active, onClick, compType }: {
-  icon: React.ReactNode; label: string; active: boolean; onClick: () => void; compType: string;
+function MiniChip({ icon, label, active, onClick, compType, tourId }: {
+  icon: React.ReactNode; label: string; active: boolean; onClick: () => void; compType: string; tourId?: string;
 }) {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('component-type', compType);
@@ -524,7 +524,7 @@ function MiniChip({ icon, label, active, onClick, compType }: {
   };
 
   return (
-    <button onClick={onClick} draggable onDragStart={handleDragStart}
+    <button onClick={onClick} draggable onDragStart={handleDragStart} data-tour={tourId}
       className={`flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-lg
                   border transition-all active:scale-95 cursor-grab
                   ${active
