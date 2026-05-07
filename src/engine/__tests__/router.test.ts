@@ -27,12 +27,12 @@ describe('computeFacing', () => {
 
 describe('routeOrthogonal', () => {
   it('returns detour C-shape for same-row opposite-facing (always right-angle)', () => {
-    // Terminal 1 at (120,100) exits RIGHT. Terminal 2 at (200,100) exits LEFT.
     const wp = routeOrthogonal({ x: 120, y: 100 }, 'R', { x: 200, y: 100 }, 'L');
-    // Same row: creates detour above. e1=(140,100), e2=(180,100), detourY=70
+    // Same row: detour above. e1=(160,100), e2=(160,100) with jetty=40
+    // detourY = 100-30 = 70
     expect(wp).toHaveLength(2);
-    expect(wp[0]).toEqual({ x: 140, y: 70 });
-    expect(wp[1]).toEqual({ x: 180, y: 70 });
+    expect(wp[0]).toEqual({ x: 160, y: 70 });
+    expect(wp[1]).toEqual({ x: 160, y: 70 });
   });
 
   it('returns L-shape (1 bend) for mixed axes', () => {
@@ -57,34 +57,33 @@ describe('routeOrthogonal', () => {
   });
 
   it('returns C-shape (2 bends) for same direction on same axis', () => {
-    // Both exit RIGHT
+    // Both exit RIGHT, jetty=40
     const wp = routeOrthogonal({ x: 100, y: 100 }, 'R', { x: 200, y: 200 }, 'R');
     expect(wp).toHaveLength(2);
-    // Different rows → midpoint connector
-    // e1=(120,100), e2=(220,200). mx=170. bends: (170,100), (170,200)
-    expect(wp[0].x).toBe(170);
+    // e1=(140,100), e2=(240,200). mx=(140+240)/2=190
+    expect(wp[0].x).toBe(190);
     expect(wp[0].y).toBe(100);
-    expect(wp[1].x).toBe(170);
+    expect(wp[1].x).toBe(190);
     expect(wp[1].y).toBe(200);
   });
 
   it('returns detour C-shape for same row, facing away', () => {
-    // t1 right of t2, both exiting away from each other
+    // t1 right of t2, both exiting away, jetty=40
     const wp = routeOrthogonal({ x: 200, y: 100 }, 'R', { x: 100, y: 100 }, 'L');
     expect(wp).toHaveLength(2);
-    // Same row: detour above. e1=(220,100), e2=(80,100), detourY=70
-    expect(wp[0].x).toBe(220);
+    // e1=(240,100), e2=(60,100), detourY=70
+    expect(wp[0].x).toBe(240);
     expect(wp[0].y).toBe(70);
-    expect(wp[1].x).toBe(80);
+    expect(wp[1].x).toBe(60);
     expect(wp[1].y).toBe(70);
   });
 
   it('handles both vertical, facing each other', () => {
     const wp = routeOrthogonal({ x: 100, y: 120 }, 'D', { x: 100, y: 200 }, 'U');
-    // Same col: always detour. e1=(100,140), e2=(100,180), detourX=70
+    // Same col: detour left. e1=(100,160), e2=(100,160), detourX=70 (jetty=40)
     expect(wp).toHaveLength(2);
-    expect(wp[0]).toEqual({ x: 70, y: 140 });
-    expect(wp[1]).toEqual({ x: 70, y: 180 });
+    expect(wp[0]).toEqual({ x: 70, y: 160 });
+    expect(wp[1]).toEqual({ x: 70, y: 160 });
   });
 
   it('handles both vertical, different cols', () => {
@@ -101,11 +100,11 @@ describe('routeOrthogonal', () => {
   it('handles both vertical, same col, facing away', () => {
     const wp = routeOrthogonal({ x: 100, y: 200 }, 'D', { x: 100, y: 120 }, 'U');
     expect(wp).toHaveLength(2);
-    // Same col: detour left. e1=(100,220), e2=(100,100), detourX=70
+    // Same col: detour left. e1=(100,240), e2=(100,80), detourX=70 (jetty=40)
     expect(wp[0].x).toBe(70);
-    expect(wp[0].y).toBe(220);
+    expect(wp[0].y).toBe(240);
     expect(wp[1].x).toBe(70);
-    expect(wp[1].y).toBe(100);
+    expect(wp[1].y).toBe(80);
   });
 });
 
@@ -149,10 +148,9 @@ describe('buildRoundedPath', () => {
 describe('buildPointList', () => {
   it('includes jetty points for proper right-angle path', () => {
     const pts = buildPointList({ x: 120, y: 100 }, 'R', { x: 200, y: 100 }, 'L', []);
-    // Path: t1(120,100) → e1(140,100) → detour up(140,70) → across(180,70) → e2(180,100) → t2(200,100)
-    // After collinear cleanup: t1, e1, detour1, detour2, e2, t2 → 6 points
-    // But e1 and detour1 share x, e2 and detour2 share x, so e1/e2 stay
-    expect(pts).toHaveLength(6);
+    // jetty=40: e1=(160,100), e2=(160,100), detourY=70
+    // Path: t1(120,100) → e1(160,100) → detour(160,70)/(160,70) → e2(160,100) → t2(200,100)
+    // After collinear cleanup of duplicates: t1(120,100), e1(160,100), detour(160,70), t2(200,100) = 4 pts
     // Every segment must be horizontal or vertical (right-angle only)
     for (let i = 1; i < pts.length; i++) {
       const dx = Math.abs(pts[i].x - pts[i - 1].x);

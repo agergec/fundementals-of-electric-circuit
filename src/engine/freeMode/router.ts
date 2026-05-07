@@ -55,7 +55,7 @@ export function routeOrthogonal(
   d1: Facing,
   t2: Point,
   d2: Facing,
-  jetty: number = 20,
+  jetty: number = 40,
 ): Point[] {
   const e1 = extend(t1, d1, jetty);
   const e2 = extend(t2, d2, jetty);
@@ -164,7 +164,7 @@ export function buildPointList(
   t2: Point,
   d2: Facing,
   waypoints: Point[],
-  jetty: number = 20,
+  jetty: number = 40,
 ): Point[] {
   if (waypoints.length > 0) {
     return [t1, ...waypoints, t2];
