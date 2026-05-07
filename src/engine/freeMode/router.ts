@@ -169,14 +169,11 @@ export function buildPointList(
   if (waypoints.length > 0) {
     return [t1, ...waypoints, t2];
   }
-  // Auto-route
+  // Auto-route: always include jetty extension points so every segment is orthogonal
   const e1 = extend(t1, d1, jetty);
   const e2 = extend(t2, d2, jetty);
   const autoWaypoints = routeOrthogonal(t1, d1, t2, d2, jetty);
-  if (autoWaypoints.length === 0) {
-    return cleanupCollinear([t1, e1, e2, t2]);
-  }
-  return [t1, ...autoWaypoints, t2];
+  return cleanupCollinear([t1, e1, ...autoWaypoints, e2, t2]);
 }
 
 /**

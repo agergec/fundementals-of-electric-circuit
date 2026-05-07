@@ -147,12 +147,18 @@ describe('buildRoundedPath', () => {
 });
 
 describe('buildPointList', () => {
-  it('returns terminal + detour + terminal for same-row auto-route', () => {
+  it('includes jetty points for proper right-angle path', () => {
     const pts = buildPointList({ x: 120, y: 100 }, 'R', { x: 200, y: 100 }, 'L', []);
-    // Same row: auto-routed detour → [t1, detour1, detour2, t2]
-    expect(pts).toHaveLength(4);
-    expect(pts[0]).toEqual({ x: 120, y: 100 });
-    expect(pts[3]).toEqual({ x: 200, y: 100 });
+    // Path: t1(120,100) → e1(140,100) → detour up(140,70) → across(180,70) → e2(180,100) → t2(200,100)
+    // After collinear cleanup: t1, e1, detour1, detour2, e2, t2 → 6 points
+    // But e1 and detour1 share x, e2 and detour2 share x, so e1/e2 stay
+    expect(pts).toHaveLength(6);
+    // Every segment must be horizontal or vertical (right-angle only)
+    for (let i = 1; i < pts.length; i++) {
+      const dx = Math.abs(pts[i].x - pts[i - 1].x);
+      const dy = Math.abs(pts[i].y - pts[i - 1].y);
+      expect(dx < 0.01 || dy < 0.01).toBe(true);
+    }
   });
 
   it('returns terminal + waypoints + terminal when waypoints provided', () => {
