@@ -59,4 +59,36 @@ describe('validateCircuit', () => {
 
     expect(result.issues.some(i => i.level === 'info')).toBe(true);
   });
+
+  it('every issue carries a fix hint key', () => {
+    const scenarios: { components: FreeComponent[]; wires: FreeWire[]; solver: { totalResistance: number; totalCurrent: number; success: boolean; errorKey?: string }; voltage: number }[] = [
+      { // ammeter in parallel + short circuit
+        components: [fc('gen', 'generator', 80, 200), fc('l1', 'lamp', 240, 200), fc('am', 'ammeter', 240, 280)],
+        wires: [w('gen:1', 'l1:0'), w('gen:1', 'am:0'), w('l1:1', 'gen:0'), w('am:1', 'gen:0')],
+        solver: { totalResistance: 0, totalCurrent: Infinity, success: true }, voltage: 12,
+      },
+      { // voltmeter in series + open pole (floating lamp terminal)
+        components: [fc('gen', 'generator', 80, 200), fc('vm', 'voltmeter', 240, 200), fc('l2', 'lamp', 400, 200)],
+        wires: [w('gen:1', 'vm:0'), w('vm:1', 'gen:0'), w('gen:1', 'l2:0')],
+        solver: { totalResistance: Infinity, totalCurrent: 0, success: true }, voltage: 12,
+      },
+      { // open circuit + generator off info
+        components: [fc('gen', 'generator', 80, 200), fc('l1', 'lamp', 240, 200)],
+        wires: [w('gen:1', 'l1:0'), w('l1:1', 'gen:0')],
+        solver: { totalResistance: 10, totalCurrent: 0, success: false, errorKey: 'freeMode.openCircuit' }, voltage: 12,
+      },
+      { // generator off
+        components: [fc('gen', 'generator', 80, 200)],
+        wires: [],
+        solver: { totalResistance: 10, totalCurrent: 0, success: true }, voltage: 0,
+      },
+    ];
+    for (const sc of scenarios) {
+      const result = validateCircuit(sc.components, sc.wires, sc.solver, sc.voltage);
+      expect(result.issues.length).toBeGreaterThan(0);
+      for (const issue of result.issues) {
+        expect(issue.hintKey, `issue ${issue.key} should have a hintKey`).toMatch(/^circuit\..+Hint$/);
+      }
+    }
+  });
 });

@@ -6,6 +6,7 @@ import type { WireMaterial } from '../utils/constants';
 import { DEFAULT_VOLTAGE } from '../utils/constants';
 import { solveFreeCircuit } from '../engine/freeMode/solver';
 import { validateCircuit } from '../engine/freeMode/validate';
+import type { ValidationIssue } from '../engine/freeMode/validate';
 import { importFromTree } from '../engine/freeMode/importTree';
 import type { CircuitNode } from '../engine/types';
 
@@ -72,9 +73,15 @@ interface FreeModeStore {
   totalWireResistance: number;
   terminalPolarities: Record<string, '+' | '-'>;
   solverErrorKey: string | null;
-  validationIssues: { level: string; key: string; detailKey: string; ids: string[] }[];
+  validationIssues: ValidationIssue[];
   errorIds: string[];
-  pendingWire: { fromTerminal: TerminalId; toX: number; toY: number } | null;
+  // returnTool: tool to restore after the wire completes — 'wire' keeps wire mode
+  // active for consecutive wiring, anything else falls back to 'select'
+  pendingWire: { fromTerminal: TerminalId; toX: number; toY: number; returnTool: ToolType } | null;
+  // Mirrors the component type during an HTML5 drag from the toolbar —
+  // dataTransfer.getData is unreadable during dragover, so the ghost preview reads this
+  draggingComponentType: FreeComponent['componentType'] | null;
+  setDraggingComponentType: (t: FreeComponent['componentType'] | null) => void;
 
   // Undo/redo
   undoStack: { components: FreeComponent[]; wires: FreeWire[] }[];
@@ -84,8 +91,8 @@ interface FreeModeStore {
   pushHistory: () => void;
 
   // Actions
-  placeComponent: (type: FreeComponent['componentType'], x: number, y: number) => void;
-  insertComponentOnWire: (type: FreeComponent['componentType'], x: number, y: number, wireId: string) => void;
+  placeComponent: (type: FreeComponent['componentType'], x: number, y: number) => string;
+  insertComponentOnWire: (type: FreeComponent['componentType'], x: number, y: number, wireId: string, rotation?: number) => string | null;
   removeComponent: (id: string) => void;
   moveComponent: (id: string, x: number, y: number) => void;
   addWire: (from: TerminalId, to: TerminalId) => void;
@@ -104,6 +111,7 @@ interface FreeModeStore {
   setWireMaterialById: (wireId: string, material: WireMaterial) => void;
   setWireDiameterMmById: (wireId: string, d: number) => void;
   setWireWaypoints: (wireId: string, waypoints: { x: number; y: number }[]) => void;
+  clearAttachedWaypoints: (compId: string) => void;
   rewireEndpoint: (wireId: string, end: 'from' | 'to', newTerminal: string) => void;
   startWire: (from: TerminalId, mouseX: number, mouseY: number) => void;
   updateWirePreview: (mouseX: number, mouseY: number) => void;
@@ -148,6 +156,8 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
   validationIssues: [],
   errorIds: [],
   pendingWire: null,
+  draggingComponentType: null,
+  setDraggingComponentType: (t) => set({ draggingComponentType: t }),
   undoStack: [],
   redoStack: [],
 
@@ -199,15 +209,18 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
         ...recalc({ ...s, components }),
       };
     });
+    return comp.id;
   },
 
-  insertComponentOnWire: (type, x, y, wireId) => {
-    const comp = makeComponent(type, x, y);
+  insertComponentOnWire: (type, x, y, wireId, rotation = 0) => {
+    const comp = { ...makeComponent(type, x, y), rotation };
+    let inserted = false;
     set((s) => {
       const splitWire = s.wires.find(w => w.id === wireId);
       if (!splitWire) return {};
       const wires = s.wires.filter(w => w.id !== wireId);
-      // Create two new wires connecting through the new component
+      // Create two new wires connecting through the new component.
+      // The split wire's manual waypoints are intentionally dropped — both halves auto-route.
       const wireA: FreeWire = {
         id: genId('wire'),
         fromTerminal: splitWire.fromTerminal,
@@ -228,6 +241,7 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
       };
       const components = [...s.components, comp];
       wires.push(wireA, wireB);
+      inserted = true;
       return {
         components,
         wires,
@@ -236,6 +250,7 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
         ...recalc({ ...s, components, wires }),
       };
     });
+    return inserted ? comp.id : null;
   },
 
   removeComponent: (id) => {
@@ -275,7 +290,12 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
           (w.fromTerminal === from && w.toTerminal === to) ||
           (w.fromTerminal === to && w.toTerminal === from),
       );
-      if (exists) return { pendingWire: null };
+      if (exists) {
+        return {
+          pendingWire: null,
+          activeTool: (s.pendingWire?.returnTool === 'wire' ? 'wire' : 'select') as ToolType,
+        };
+      }
 
       const wire: FreeWire = {
         id: genId('wire'),
@@ -290,7 +310,7 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
       return {
         wires,
         pendingWire: null,
-        activeTool: 'select' as ToolType,
+        activeTool: (s.pendingWire?.returnTool === 'wire' ? 'wire' : 'select') as ToolType,
         undoStack: pushStack(s.undoStack, s.components, s.wires),
         redoStack: [],
         ...recalc({ ...s, wires }),
@@ -401,6 +421,22 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
     };
   }),
 
+  // Clear manual waypoints of wires attached to a component so they auto-route
+  // while it moves. No pushHistory: the canvas snapshots at drag start, so undo
+  // restores the waypoints together with the position.
+  clearAttachedWaypoints: (compId) => set((s) => {
+    const prefix = `${compId}:`;
+    if (!s.wires.some(w =>
+      (w.fromTerminal.startsWith(prefix) || w.toTerminal.startsWith(prefix)) && (w.waypoints?.length ?? 0) > 0,
+    )) return {};
+    const wires = s.wires.map(w =>
+      (w.fromTerminal.startsWith(prefix) || w.toTerminal.startsWith(prefix)) && (w.waypoints?.length ?? 0) > 0
+        ? { ...w, waypoints: [] }
+        : w,
+    );
+    return { wires };
+  }),
+
   rewireEndpoint: (wireId, end, newTerminal) => set((s) => {
     const wires = s.wires.map((w) => {
       if (w.id !== wireId) return w;
@@ -417,10 +453,10 @@ export const useFreeModeStore = create<FreeModeStore>((set) => ({
   }),
 
   startWire: (from, mouseX, mouseY) => {
-    set({
+    set((s) => ({
       activeTool: 'wire',
-      pendingWire: { fromTerminal: from, toX: mouseX, toY: mouseY },
-    });
+      pendingWire: { fromTerminal: from, toX: mouseX, toY: mouseY, returnTool: s.activeTool },
+    }));
   },
 
   updateWirePreview: (mouseX, mouseY) => {

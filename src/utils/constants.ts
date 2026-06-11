@@ -15,6 +15,16 @@ export const RESISTANCE_OPTIONS = [
 
 export const PIXEL_TO_METERS = 0.001; // 1 SVG pixel = 1mm real world (lab bench scale)
 
+// ── Free-mode canvas interaction ──
+export const GRID_SNAP = 40;
+// Single snap radius for all terminal interactions (highlight, wire completion, rewire)
+export const TERMINAL_SNAP_RADIUS = 24;
+export const WIRE_HIT_RADIUS = 16; // drop-component-on-wire detection
+// Wires shorter than this are not split on component drop (would create degenerate segments)
+export const MIN_SPLIT_WIRE_LEN = 2 * GRID_SNAP;
+// Wires shorter than this force the inserted component to the wire midpoint
+export const SNAP_TO_MIDPOINT_LEN = 4 * GRID_SNAP;
+
 export const WIRE_MATERIALS = {
   silver:   { resistivity: 1.59e-8 },
   copper:   { resistivity: 1.68e-8 },

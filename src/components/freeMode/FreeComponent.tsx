@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { TERMINAL_SNAP_RADIUS } from '../../utils/constants';
 import type { FreeComponent as FreeComponentT, CalculatedValues } from '../../engine/types';
 import { Generator } from '../elements/Generator';
 import { Lamp } from '../elements/Lamp';
@@ -8,7 +9,7 @@ import { Switch } from '../elements/Switch';
 import { Resistor } from '../elements/Resistor';
 import { Fuse } from '../elements/Fuse';
 
-const COMP_HALF_W = 40;
+export const COMP_HALF_W = 40;
 
 interface FreeComponentProps {
   component: FreeComponentT;
@@ -76,12 +77,20 @@ export const FreeComponent = memo(function FreeComponent({
         const hl = highlightTerminal === idx;
         return (
           <g key={idx} data-term={idx}>
-            <circle cx={tx} cy={ty} r={isWiring ? 16 : 10} fill="transparent" style={{ cursor: 'crosshair' }}
+            <circle cx={tx} cy={ty} r={isWiring ? TERMINAL_SNAP_RADIUS : 10} fill="transparent" style={{ cursor: 'crosshair' }}
               onClick={(e) => { e.stopPropagation(); onTerminalClick(id, idx, e); }}
               onMouseDown={(e) => { e.stopPropagation(); onTerminalMouseDown(id, idx, e); }}
             />
-            <circle cx={tx} cy={ty} r={hl ? 7 : 6}
-              fill={hl ? '#a78bfa' : '#6b6580'} stroke={hl ? '#c4b5fd' : '#4a4560'} strokeWidth={1.5} />
+            {/* pointerEvents none: the visible dot must not swallow clicks meant for the hit circle */}
+            <circle cx={tx} cy={ty} r={hl ? 8 : isWiring ? 8 : 6}
+              fill={hl ? '#a78bfa' : '#6b6580'} stroke={hl ? '#c4b5fd' : '#4a4560'} strokeWidth={1.5}
+              pointerEvents="none" />
+            {hl && (
+              <circle cx={tx} cy={ty} r={10} fill="none" stroke="#a78bfa" strokeWidth={2} pointerEvents="none">
+                <animate attributeName="r" values="8;14;8" dur="0.9s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.9;0.2;0.9" dur="0.9s" repeatCount="indefinite" />
+              </circle>
+            )}
           </g>
         );
       })}

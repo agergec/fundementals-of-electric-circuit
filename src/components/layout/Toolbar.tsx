@@ -7,6 +7,7 @@ import { useChallengeStore } from '../../store/challengeStore';
 import { useModeStore } from '../../store/modeStore';
 import { MAX_VOLTAGE, MIN_VOLTAGE, PIXEL_TO_METERS, WIRE_MATERIALS } from '../../utils/constants';
 import type { WireMaterial } from '../../utils/constants';
+import type { FreeComponent as FreeComponentT } from '../../engine/types';
 
 
 
@@ -519,13 +520,20 @@ function ToolChip({ icon, label, active, onClick, tourId }: {
 function MiniChip({ icon, label, active, onClick, compType, tourId }: {
   icon: React.ReactNode; label: string; active: boolean; onClick: () => void; compType: string; tourId?: string;
 }) {
+  const setDraggingComponentType = useFreeModeStore((s) => s.setDraggingComponentType);
+
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('component-type', compType);
     e.dataTransfer.effectAllowed = 'copy';
+    // Mirror into the store: dataTransfer is unreadable during dragover, the canvas
+    // ghost preview needs to know what is being dragged
+    setDraggingComponentType(compType as FreeComponentT['componentType']);
   };
 
+  const handleDragEnd = () => setDraggingComponentType(null);
+
   return (
-    <button onClick={onClick} draggable onDragStart={handleDragStart} data-tour={tourId}
+    <button onClick={onClick} draggable onDragStart={handleDragStart} onDragEnd={handleDragEnd} data-tour={tourId}
       className={`flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-lg
                   border transition-all active:scale-95 cursor-grab
                   ${active

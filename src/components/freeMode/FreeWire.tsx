@@ -1,4 +1,5 @@
 import { memo, useRef, useCallback, useEffect } from 'react';
+import { GRID_SNAP } from '../../utils/constants';
 import type { FreeComponent, Point } from '../../engine/types';
 import { getTerminalPos } from '../../store/freeModeStore';
 import { buildPointList, buildRoundedPath, type Facing } from '../../engine/freeMode/router';
@@ -40,7 +41,7 @@ interface FreeWireProps {
   onClick: (id: string, e: React.MouseEvent) => void;
 }
 
-const SNAP = 40;
+const SNAP = GRID_SNAP;
 
 function snap(v: number): number {
   return Math.round(v / SNAP) * SNAP;

@@ -6,6 +6,7 @@ export interface ValidationIssue {
   level: 'error' | 'warning' | 'info';
   key: string;
   detailKey: string;
+  hintKey: string; // student-facing "try this" fix suggestion
   ids: string[];
 }
 
@@ -25,7 +26,7 @@ export function validateCircuit(
 
   // No voltage = generator off, not an error
   if (voltage === 0) {
-    issues.push({ level: 'info', key: 'circuit.generatorOff', detailKey: 'circuit.generatorOffDetail', ids: [] });
+    issues.push({ level: 'info', key: 'circuit.generatorOff', detailKey: 'circuit.generatorOffDetail', hintKey: 'circuit.generatorOffHint', ids: [] });
     return { issues, errorIds };
   }
 
@@ -58,6 +59,7 @@ export function validateCircuit(
             level: 'error',
             key: 'circuit.generatorsParallel',
             detailKey: 'circuit.generatorsParallelDetail',
+            hintKey: 'circuit.generatorsParallelHint',
             ids: [ga.id, gb.id],
           });
         }
@@ -82,6 +84,7 @@ export function validateCircuit(
         level: 'error',
         key: 'circuit.ammeterInParallel',
         detailKey: 'circuit.ammeterInParallelDetail',
+        hintKey: 'circuit.ammeterInParallelHint',
         ids: [edge.id, parallelEdge.id],
       });
     }
@@ -104,6 +107,7 @@ export function validateCircuit(
           level: 'warning',
           key: 'circuit.voltmeterInSeries',
           detailKey: 'circuit.voltmeterInSeriesDetail',
+          hintKey: 'circuit.voltmeterInSeriesHint',
           ids: [edge.id],
         });
       }
@@ -128,6 +132,7 @@ export function validateCircuit(
           level: 'error',
           key: 'circuit.shortCircuit',
           detailKey: 'circuit.shortCircuitDetail',
+          hintKey: 'circuit.shortCircuitHint',
           ids: shortingIds,
         });
       }
@@ -140,13 +145,20 @@ export function validateCircuit(
       level: 'warning',
       key: 'circuit.openCircuit',
       detailKey: 'circuit.openCircuitDetail',
+      hintKey: 'circuit.openCircuitHint',
       ids: [],
     });
   }
 
   // ── Bypassed / open-pole components ──
-  // A component is bypassed when both its terminals land on the same electrical node
-  // A terminal is open when it's not connected to anything (not in nodeMap)
+  // A component is bypassed when both its terminals land on the same electrical node.
+  // A terminal is open when no wire touches it (nodeMap registers every terminal,
+  // so connectivity must be derived from the wires themselves).
+  const wiredTerminals = new Set<string>();
+  for (const w of wires) {
+    wiredTerminals.add(w.fromTerminal);
+    wiredTerminals.add(w.toTerminal);
+  }
   for (const comp of components) {
     if (comp.componentType === 'generator' || comp.componentType === 'junction') continue;
     const n0 = graph.nodeMap.get(terminalId(comp.id, 0));
@@ -158,16 +170,20 @@ export function validateCircuit(
         level: 'warning',
         key: 'circuit.componentBypassed',
         detailKey: 'circuit.componentBypassedDetail',
+        hintKey: 'circuit.componentBypassedHint',
         ids: [comp.id],
       });
     }
-    // One terminal is floating (not connected to anything)
-    if ((n0 === undefined && n1 !== undefined) || (n0 !== undefined && n1 === undefined)) {
+    // One terminal is floating (no wire attached) while the other is connected
+    const c0 = wiredTerminals.has(terminalId(comp.id, 0));
+    const c1 = wiredTerminals.has(terminalId(comp.id, 1));
+    if (c0 !== c1) {
       errorIds.add(comp.id);
       issues.push({
         level: 'warning',
         key: 'circuit.openPole',
         detailKey: 'circuit.openPoleDetail',
+        hintKey: 'circuit.openPoleHint',
         ids: [comp.id],
       });
     }
@@ -181,6 +197,7 @@ export function validateCircuit(
         level: 'error',
         key: 'circuit.generatorShorted',
         detailKey: 'circuit.generatorShortedDetail',
+        hintKey: 'circuit.generatorShortedHint',
         ids: [gen.id],
       });
     }
@@ -194,6 +211,7 @@ export function validateCircuit(
         level: 'warning',
         key: 'circuit.fuseBlown',
         detailKey: 'circuit.fuseBlownDetail',
+        hintKey: 'circuit.fuseBlownHint',
         ids: [comp.id],
       });
     }
